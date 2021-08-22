@@ -1,4 +1,4 @@
-name: Make Bitcoin Figures
+name: RyanAirRun
 
 on:
   workflow_dispatch:
