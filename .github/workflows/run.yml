@@ -1,0 +1,25 @@
+name: Make Bitcoin Figures
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+    - name: make figures
+      run: python ryanair.py.py
+    - name: Commit and push if it changed
+      run: |-
+        git config user.name "Automated"
+        git config user.email "actions@users.noreply.github.com"
+        git add flight_info.json
+        git commit -a --allow-empty-message -m '' || exit 0
+        git pull && git push
