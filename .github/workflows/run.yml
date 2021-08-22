@@ -14,8 +14,7 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: pip install -r requirements.txt
-    - name: make figures
-      run: python ryanair.py.py
+    - run: python ryanair.py
     - name: Commit and push if it changed
       run: |-
         git config user.name "Automated"
