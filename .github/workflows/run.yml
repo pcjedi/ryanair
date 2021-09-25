@@ -2,6 +2,12 @@ name: RyanAirRun
 
 on:
   workflow_dispatch:
+    inputs:
+      root_origin:
+      start_within:
+      min_stay:
+      max_away:
+
 
 jobs:
   run:
@@ -14,11 +20,9 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: pip install -r requirements.txt
-    - run: python ryanair.py
-    - name: Commit and push if it changed
-      run: |-
-        git config user.name "Automated"
-        git config user.email "actions@users.noreply.github.com"
-        git add flight_info.json
-        git commit -a --allow-empty-message -m '' || exit 0
-        git pull && git push
+    - run: > 
+        python ryanair.py
+        --root_origin ${{ github.event.inputs.root_origin }}
+        --start_within ${{ github.event.inputs.start_within }}
+        --min_stay ${{ github.event.inputs.min_stay }}
+        --max_away ${{ github.event.inputs.max_away }}
