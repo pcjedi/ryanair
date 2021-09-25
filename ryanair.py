@@ -112,6 +112,7 @@ if __name__ == "__main__":
     aparser.add_argument('--start_within', type=int)
     aparser.add_argument('--min_stay', type=int)
     aparser.add_argument('--max_away', type=int)
+    aparser.add_argument('--no_tqdm', action='store_true')
     args = aparser.parse_args()
     
     r = dict()
@@ -121,7 +122,7 @@ if __name__ == "__main__":
     assert args.root_origin in a
     
     for dest in get_destinations(args.root_origin):
-        for date in tqdm(get_availabilities(args.root_origin, dest), desc=dest):
+        for date in tqdm(get_availabilities(args.root_origin, dest), desc=dest, disable=args.no_tqdm):
             if date < datetime.date.today() + datetime.timedelta(args.start_within):
                 for flight in get_flights(args.root_origin, dest, date):
                     if flight not in r:
@@ -129,7 +130,7 @@ if __name__ == "__main__":
     
     mr = min_route(r)
     while mr is not None:
-        for dest in tqdm(get_destinations(mr[-1].destination), desc=mr[-1].destination):
+        for dest in tqdm(get_destinations(mr[-1].destination), desc=mr[-1].destination, disable=args.no_tqdm):
             if dest not in {f.destination for f in mr}:
                 for date in get_availabilities(mr[-1].destination, dest):
                     if 0 <= (date - mr[-1].end.date()).days and (date - mr[0].start.date()).days < args.max_away:
