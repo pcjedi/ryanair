@@ -116,7 +116,7 @@ if __name__ == "__main__":
     args = aparser.parse_args()
     
     r = dict()
-    routes = list()
+    cheapest_route = None
     
     a = get_airports()
     assert args.root_origin in a
@@ -137,8 +137,10 @@ if __name__ == "__main__":
                         for flight in get_flights(mr[-1].destination, dest, date):
                             if (flight.end - mr[-1].end).total_seconds() > 3600 * args.min_stay:
                                 if flight.destination==args.root_origin:
-                                    routes.append(mr + [flight])
-                                    print(mr + [flight])
+                                    if cheapest_route is None or (sum(f.euro for f in cheapest_route)/len(cheapest_route))>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
+                                        cheapest_route = mr + [flight]
+                                        print(cheapest_route)
+                                        [print(f.url) for f in cheapest_route]
                                 else:
                                     get(r, mr)[flight] = {}
 
@@ -146,8 +148,3 @@ if __name__ == "__main__":
             set_none(r, mr)
 
         mr = min_route(r)
-    
-    sorted_routes = sorted(routes, key=lambda route:sum(f.euro for f in route))
-    print(sorted_routes)
-    for f in sorted_routes[0]:
-        print(f.url)
