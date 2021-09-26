@@ -111,6 +111,7 @@ if __name__ == "__main__":
     aparser.add_argument('--root_origin')
     aparser.add_argument('--start_within', type=int)
     aparser.add_argument('--min_stay', type=int)
+    aparser.add_argument('--max_stay', type=int)
     aparser.add_argument('--max_away', type=int)
     aparser.add_argument('--no_tqdm', action='store_true')
     args = aparser.parse_args()
@@ -133,9 +134,9 @@ if __name__ == "__main__":
         for dest in tqdm(get_destinations(mr[-1].destination), desc=mr[-1].destination, disable=args.no_tqdm):
             if dest not in {f.destination for f in mr}:
                 for date in get_availabilities(mr[-1].destination, dest):
-                    if 0 <= (date - mr[-1].end.date()).days and (date - mr[0].start.date()).days < args.max_away:
+                    if 0 <= (date - mr[-1].end.date()).days <= 1 + args.max_stay / 24 and (date - mr[0].start.date()).days < args.max_away:
                         for flight in get_flights(mr[-1].destination, dest, date):
-                            if (flight.end - mr[-1].end).total_seconds() > 3600 * args.min_stay:
+                            if 3600 * args.min_stay < (flight.end - mr[-1].end).total_seconds() < 3600 * args.max_stay:
                                 if flight.destination==args.root_origin:
                                     if cheapest_route is None or (sum(f.euro for f in cheapest_route)/len(cheapest_route))>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
                                         cheapest_route = mr + [flight]

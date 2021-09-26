@@ -25,5 +25,6 @@ jobs:
         --root_origin ${{ github.event.inputs.root_origin }}
         --start_within ${{ github.event.inputs.start_within }}
         --min_stay ${{ github.event.inputs.min_stay }}
+        --min_stay ${{ github.event.inputs.max_stay }}
         --max_away ${{ github.event.inputs.max_away }}
         --no_tqdm
