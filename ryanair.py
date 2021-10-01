@@ -144,7 +144,7 @@ if __name__ == "__main__":
                                             sum(f.euro for f in cheapest_route),
                                             len(cheapest_route),
                                             sum(f.euro for f in cheapest_route)/len(cheapest_route),
-                                            cheapest_route
+                                            cheapest_route,
                                             [f.url for f in cheapest_route],
                                         )
                                 else:
