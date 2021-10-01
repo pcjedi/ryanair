@@ -140,8 +140,13 @@ if __name__ == "__main__":
                                 if flight.destination==args.root_origin:
                                     if cheapest_route is None or (sum(f.euro for f in cheapest_route)/len(cheapest_route))>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
                                         cheapest_route = mr + [flight]
-                                        print(cheapest_route)
-                                        [print(f.url) for f in cheapest_route]
+                                        print(
+                                            sum(f.euro for f in cheapest_route),
+                                            len(cheapest_route),
+                                            sum(f.euro for f in cheapest_route)/len(cheapest_route),
+                                            cheapest_route
+                                            [f.url for f in cheapest_route],
+                                        )
                                 else:
                                     get(r, mr)[flight] = {}
 
