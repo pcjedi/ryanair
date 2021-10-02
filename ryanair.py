@@ -145,7 +145,7 @@ if __name__ == "__main__":
                                             len(cheapest_route),
                                             sum(f.euro for f in cheapest_route)/len(cheapest_route),
                                             cheapest_route,
-                                            [(a[f1.destination]["name"], f1.end-f1.start, f2.start-f1.end) for f1,f2 in zip(cheapest_route, cheapest_route[1:])],
+                                            [(a[f1.destination]["name"], str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(cheapest_route, cheapest_route[1:])],
                                             [f.url for f in cheapest_route],
                                         )
                                 else:
