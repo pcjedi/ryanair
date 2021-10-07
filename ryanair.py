@@ -5,8 +5,7 @@ from functools import cache
 from dateutil import parser
 from tqdm import tqdm
 import datetime
-
-
+import cProfile
 
 
 class Flight:
@@ -35,33 +34,29 @@ class Flight:
 
 
 @cache
-def get_airports():
-    g = requests.get("https://www.ryanair.com/api/locate/v1/autocomplete/airports?phrase=&market=de-de")
-    request_elapsed_sum += g.elapsed
+def get_airports(session=requests):
+    g = session.get("https://www.ryanair.com/api/locate/v1/autocomplete/airports?phrase=&market=de-de")
     airports_raw = g.json()
     return {rr["code"]:rr for rr in airports_raw}
 
 
 @cache
-def get_destinations(origin):
-    g = requests.get(f"https://www.ryanair.com/api/locate/v1/autocomplete/routes?arrivalPhrase=&departurePhrase={origin}&market=de-de")
+def get_destinations(origin, session=requests):
+    g = session.get(f"https://www.ryanair.com/api/locate/v1/autocomplete/routes?arrivalPhrase=&departurePhrase={origin}&market=de-de")
     r2 = g.json()
-    request_elapsed_sum += g.elapsed
     return {arrivalAirport["arrivalAirport"]["code"] for arrivalAirport in r2 if arrivalAirport["connectingAirport"] is None}
 
 
 @cache
-def get_availabilities(origin, destination):
-    g = requests.get(f"https://www.ryanair.com/api/farfnd/3/oneWayFares/{origin}/{destination}/availabilities")
-    request_elapsed_sum += g.elapsed
+def get_availabilities(origin, destination, session=requests):
+    g = session.get(f"https://www.ryanair.com/api/farfnd/3/oneWayFares/{origin}/{destination}/availabilities")
     return [parser.parse(d).date() for d in g.json()]
 
 
 @cache
-def get_flights(origin, destination, availabilitie):
+def get_flights(origin, destination, availabilitie, session=requests):
     url = f"https://www.ryanair.com/api/booking/v4/de-de/availability?ADT=1&CHD=0&DateIn=&DateOut={availabilitie.strftime('%Y-%m-%d')}&Destination={destination}&Disc=0&INF=0&Origin={origin}&TEEN=0&promoCode=&IncludeConnectingFlights=false&FlexDaysBeforeOut=0&FlexDaysOut=0&ToUs=AGREED"
-    g = requests.get(url)
-    request_elapsed_sum += g.elapsed
+    g = session.get(url)
     r4 = g.json()
     r = set()
     for date in r4["trips"][0]["dates"]:
@@ -81,9 +76,8 @@ def get_flights(origin, destination, availabilitie):
 
 
 @cache
-def get_rates(base="EUR"):
-    g = requests.get(f"https://api.exchangerate.host/latest?base={base}")
-    request_elapsed_sum += g.elapsed
+def get_rates(base="EUR", session=requests):
+    g = session.get(f"https://api.exchangerate.host/latest?base={base}")
     return g.json()["rates"]
 
 
@@ -129,31 +123,34 @@ if __name__ == "__main__":
     aparser.add_argument('--max_stay', type=int)
     aparser.add_argument('--max_away', type=int)
     aparser.add_argument('--no_tqdm', action='store_true')
+    aparser.add_argument('--early_quit', action='store_true')
     args = aparser.parse_args()
-
-    request_elapsed_sum = datetime.timedelta()
+    
+    p = cProfile.Profile()
+    p.enable()
     start_time = datetime.datetime.now()
     
     r = dict()
     cheapest_route = None
-    
-    a = get_airports()
+
+    s = requests.Session()
+    a = get_airports(session=s)
     assert args.root_origin in a
     
-    for dest in get_destinations(args.root_origin):
-        for date in tqdm(get_availabilities(args.root_origin, dest), desc=dest, disable=args.no_tqdm):
+    for dest in get_destinations(args.root_origin, session=s):
+        for date in tqdm(get_availabilities(args.root_origin, dest, session=s), desc=dest, disable=args.no_tqdm):
             if date < datetime.date.today() + datetime.timedelta(args.start_within):
-                for flight in get_flights(args.root_origin, dest, date):
+                for flight in get_flights(args.root_origin, dest, date, session=s):
                     if flight not in r:
                         r[flight] = {}
     
     mr = min_route(r)
     while mr is not None:
-        for dest in tqdm(get_destinations(mr[-1].destination), desc=mr[-1].destination, disable=args.no_tqdm):
+        for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
             if dest not in {f.destination for f in mr}:
-                for date in get_availabilities(mr[-1].destination, dest):
+                for date in get_availabilities(mr[-1].destination, dest, session=s):
                     if 0 <= (date - mr[-1].end.date()).days <= 1 + args.max_stay / 24 and (date - mr[0].start.date()).days < args.max_away:
-                        for flight in get_flights(mr[-1].destination, dest, date):
+                        for flight in get_flights(mr[-1].destination, dest, date, session=s):
                             if 3600 * args.min_stay < (flight.end - mr[-1].end).total_seconds() < 3600 * args.max_stay:
                                 if flight.destination==args.root_origin:
                                     if cheapest_route is None or (sum(f.euro for f in cheapest_route)/sum(f.duration.total_seconds() for f in cheapest_route))>(sum(f.euro for f in mr + [flight])/sum(f.duration.total_seconds() for f in mr + [flight])):
@@ -167,11 +164,11 @@ if __name__ == "__main__":
                                             [(a[f1.destination]["name"], str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(cheapest_route, cheapest_route[1:])],
                                             [f.url for f in cheapest_route],
                                             str(datetime.datetime.now() - start_time),
-                                            str(request_elapsed_sum),
                                         )
+                                        p.print_stats()
                                 else:
                                     get(r, mr)[flight] = {}
-
+        
         if len(get(r, mr))==0:
             set_none(r, mr)
 
