@@ -8,6 +8,7 @@ import datetime
 
 
 
+
 class Flight:
     def __init__(self, start, end, origin, destination, amount, currency):
         self.start = start
@@ -23,6 +24,10 @@ class Flight:
     @property
     def euro(self):
         return self.amount / get_rates()[self.currency]
+
+    @property
+    def duration(self):
+        return self.end - self.start
     
     @property
     def url(self):
@@ -31,25 +36,33 @@ class Flight:
 
 @cache
 def get_airports():
-    airports_raw = requests.get("https://www.ryanair.com/api/locate/v1/autocomplete/airports?phrase=&market=de-de").json()
+    g = requests.get("https://www.ryanair.com/api/locate/v1/autocomplete/airports?phrase=&market=de-de")
+    request_elapsed_sum += g.elapsed
+    airports_raw = g.json()
     return {rr["code"]:rr for rr in airports_raw}
 
 
 @cache
 def get_destinations(origin):
-    r2 = requests.get(f"https://www.ryanair.com/api/locate/v1/autocomplete/routes?arrivalPhrase=&departurePhrase={origin}&market=de-de").json()
+    g = requests.get(f"https://www.ryanair.com/api/locate/v1/autocomplete/routes?arrivalPhrase=&departurePhrase={origin}&market=de-de")
+    r2 = g.json()
+    request_elapsed_sum += g.elapsed
     return {arrivalAirport["arrivalAirport"]["code"] for arrivalAirport in r2 if arrivalAirport["connectingAirport"] is None}
 
 
 @cache
 def get_availabilities(origin, destination):
-    return [parser.parse(d).date() for d in requests.get(f"https://www.ryanair.com/api/farfnd/3/oneWayFares/{origin}/{destination}/availabilities").json()]
+    g = requests.get(f"https://www.ryanair.com/api/farfnd/3/oneWayFares/{origin}/{destination}/availabilities")
+    request_elapsed_sum += g.elapsed
+    return [parser.parse(d).date() for d in g.json()]
 
 
 @cache
 def get_flights(origin, destination, availabilitie):
     url = f"https://www.ryanair.com/api/booking/v4/de-de/availability?ADT=1&CHD=0&DateIn=&DateOut={availabilitie.strftime('%Y-%m-%d')}&Destination={destination}&Disc=0&INF=0&Origin={origin}&TEEN=0&promoCode=&IncludeConnectingFlights=false&FlexDaysBeforeOut=0&FlexDaysOut=0&ToUs=AGREED"
-    r4 = requests.get(url).json()
+    g = requests.get(url)
+    request_elapsed_sum += g.elapsed
+    r4 = g.json()
     r = set()
     for date in r4["trips"][0]["dates"]:
         for flight in date["flights"]:
@@ -69,7 +82,9 @@ def get_flights(origin, destination, availabilitie):
 
 @cache
 def get_rates(base="EUR"):
-    return requests.get(f"https://api.exchangerate.host/latest?base={base}").json()["rates"]
+    g = requests.get(f"https://api.exchangerate.host/latest?base={base}")
+    request_elapsed_sum += g.elapsed
+    return g.json()["rates"]
 
 
 def min_route(r):
@@ -88,7 +103,7 @@ def min_route(r):
         return
     return sorted(
         routes,
-        key=lambda route:sum(f.euro for f in route)/len(route)
+        key=lambda route:sum(f.euro for f in route)/sum(f.duration.total_seconds() for f in route)
     )[0]
 
 
@@ -115,6 +130,9 @@ if __name__ == "__main__":
     aparser.add_argument('--max_away', type=int)
     aparser.add_argument('--no_tqdm', action='store_true')
     args = aparser.parse_args()
+
+    request_elapsed_sum = datetime.timedelta()
+    start_time = datetime.datetime.now()
     
     r = dict()
     cheapest_route = None
@@ -138,15 +156,18 @@ if __name__ == "__main__":
                         for flight in get_flights(mr[-1].destination, dest, date):
                             if 3600 * args.min_stay < (flight.end - mr[-1].end).total_seconds() < 3600 * args.max_stay:
                                 if flight.destination==args.root_origin:
-                                    if cheapest_route is None or (sum(f.euro for f in cheapest_route)/len(cheapest_route))>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
+                                    if cheapest_route is None or (sum(f.euro for f in cheapest_route)/sum(f.duration.total_seconds() for f in cheapest_route))>(sum(f.euro for f in mr + [flight])/sum(f.duration.total_seconds() for f in mr + [flight])):
                                         cheapest_route = mr + [flight]
                                         print(
                                             sum(f.euro for f in cheapest_route),
                                             len(cheapest_route),
                                             sum(f.euro for f in cheapest_route)/len(cheapest_route),
+                                            3600 * sum(f.euro for f in cheapest_route)/sum(f.duration.total_seconds() for f in cheapest_route),
                                             cheapest_route,
                                             [(a[f1.destination]["name"], str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(cheapest_route, cheapest_route[1:])],
                                             [f.url for f in cheapest_route],
+                                            str(datetime.datetime.now() - start_time),
+                                            str(request_elapsed_sum),
                                         )
                                 else:
                                     get(r, mr)[flight] = {}
