@@ -5,7 +5,6 @@ from functools import cache
 from dateutil import parser
 from tqdm import tqdm
 import datetime
-import cProfile
 
 
 class Flight:
@@ -97,7 +96,7 @@ def min_route(r):
         return
     return sorted(
         routes,
-        key=lambda route:sum(f.euro for f in route)/sum(f.duration.total_seconds() for f in route)
+        key=lambda route:sum(f.euro for f in route)/len(route)
     )[0]
 
 
@@ -126,8 +125,6 @@ if __name__ == "__main__":
     aparser.add_argument('--early_quit', action='store_true')
     args = aparser.parse_args()
     
-    p = cProfile.Profile()
-    p.enable()
     start_time = datetime.datetime.now()
     
     r = dict()
@@ -153,19 +150,17 @@ if __name__ == "__main__":
                         for flight in get_flights(mr[-1].destination, dest, date, session=s):
                             if 3600 * args.min_stay < (flight.end - mr[-1].end).total_seconds() < 3600 * args.max_stay:
                                 if flight.destination==args.root_origin:
-                                    if cheapest_route is None or (sum(f.euro for f in cheapest_route)/sum(f.duration.total_seconds() for f in cheapest_route))>(sum(f.euro for f in mr + [flight])/sum(f.duration.total_seconds() for f in mr + [flight])):
+                                    if cheapest_route is None or (sum(f.euro for f in cheapest_route)/len(cheapest_route))>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
                                         cheapest_route = mr + [flight]
                                         print(
                                             sum(f.euro for f in cheapest_route),
                                             len(cheapest_route),
                                             sum(f.euro for f in cheapest_route)/len(cheapest_route),
-                                            3600 * sum(f.euro for f in cheapest_route)/sum(f.duration.total_seconds() for f in cheapest_route),
                                             cheapest_route,
                                             [(a[f1.destination]["name"], str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(cheapest_route, cheapest_route[1:])],
                                             [f.url for f in cheapest_route],
                                             str(datetime.datetime.now() - start_time),
                                         )
-                                        p.print_stats()
                                 else:
                                     get(r, mr)[flight] = {}
         
