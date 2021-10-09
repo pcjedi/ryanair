@@ -136,7 +136,7 @@ if __name__ == "__main__":
     
     for dest in get_destinations(args.root_origin_code, session=s):
         for date in tqdm(get_availabilities(args.root_origin_code, dest, session=s), desc=dest, disable=args.no_tqdm):
-            if date < datetime.date.today() + datetime.timedelta(args.start_within):
+            if date < datetime.date.today() + datetime.timedelta(args.start_within_days):
                 for flight in get_flights(args.root_origin_code, dest, date, session=s):
                     if flight not in r:
                         r[flight] = {}
