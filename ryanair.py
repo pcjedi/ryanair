@@ -116,7 +116,7 @@ def set_none(r, l):
 if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser()
-    aparser.add_argument('--root_origin')
+    aparser.add_argument('--root_origin_code')
     aparser.add_argument('--start_within_days', type=int)
     aparser.add_argument('--min_stay_hours', type=int)
     aparser.add_argument('--max_stay_hours', type=int)
