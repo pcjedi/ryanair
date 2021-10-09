@@ -25,7 +25,7 @@ jobs:
         python ryanair.py
         --root_origin ${{ github.event.inputs.root_origin }}
         --start_within_days ${{ github.event.inputs.start_within_days }}
-        --min_stay_hours ${{ github.event.inputs.min_stay }}
+        --min_stay_hours ${{ github.event.inputs.min_stay_hours }}
         --max_stay_hours ${{ github.event.inputs.max_stay_hours }}
         --max_away_days ${{ github.event.inputs.max_away_days }}
         --no_tqdm
