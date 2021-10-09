@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       root_origin:
-      start_within:
-      min_stay:
-      max_stay:
-      max_away:
+      start_within_days:
+      min_stay_hours:
+      max_stay_hours:
+      max_away_days:
 
 
 jobs:
@@ -24,8 +24,8 @@ jobs:
     - run: > 
         python ryanair.py
         --root_origin ${{ github.event.inputs.root_origin }}
-        --start_within ${{ github.event.inputs.start_within }}
-        --min_stay ${{ github.event.inputs.min_stay }}
-        --max_stay ${{ github.event.inputs.max_stay }}
-        --max_away ${{ github.event.inputs.max_away }}
+        --start_within_days ${{ github.event.inputs.start_within_days }}
+        --min_stay_hours ${{ github.event.inputs.min_stay }}
+        --max_stay_hours ${{ github.event.inputs.max_stay_hours }}
+        --max_away_days ${{ github.event.inputs.max_away_days }}
         --no_tqdm

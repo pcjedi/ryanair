@@ -117,10 +117,10 @@ if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser()
     aparser.add_argument('--root_origin')
-    aparser.add_argument('--start_within', type=int)
-    aparser.add_argument('--min_stay', type=int)
-    aparser.add_argument('--max_stay', type=int)
-    aparser.add_argument('--max_away', type=int)
+    aparser.add_argument('--start_within_days', type=int)
+    aparser.add_argument('--min_stay_hours', type=int)
+    aparser.add_argument('--max_stay_hours', type=int)
+    aparser.add_argument('--max_away_days', type=int)
     aparser.add_argument('--no_tqdm', action='store_true')
     aparser.add_argument('--early_quit', action='store_true')
     args = aparser.parse_args()
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     s = requests.Session()
     a = get_airports(session=s)
-    assert args.root_origin in a
+    assert args.root_origin in a, f"root_origin must be in {set(a.keys())}"
     
     for dest in get_destinations(args.root_origin, session=s):
         for date in tqdm(get_availabilities(args.root_origin, dest, session=s), desc=dest, disable=args.no_tqdm):
