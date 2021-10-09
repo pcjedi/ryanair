@@ -132,12 +132,12 @@ if __name__ == "__main__":
 
     s = requests.Session()
     a = get_airports(session=s)
-    assert args.root_origin in a, f"root_origin must be in {set(a.keys())}"
+    assert args.root_origin_code in a, f"root_origin_code must be on of {a}"
     
-    for dest in get_destinations(args.root_origin, session=s):
-        for date in tqdm(get_availabilities(args.root_origin, dest, session=s), desc=dest, disable=args.no_tqdm):
+    for dest in get_destinations(args.root_origin_code, session=s):
+        for date in tqdm(get_availabilities(args.root_origin_code, dest, session=s), desc=dest, disable=args.no_tqdm):
             if date < datetime.date.today() + datetime.timedelta(args.start_within):
-                for flight in get_flights(args.root_origin, dest, date, session=s):
+                for flight in get_flights(args.root_origin_code, dest, date, session=s):
                     if flight not in r:
                         r[flight] = {}
     
@@ -149,7 +149,7 @@ if __name__ == "__main__":
                     if 0 <= (date - mr[-1].end.date()).days <= 1 + args.max_stay / 24 and (date - mr[0].start.date()).days < args.max_away:
                         for flight in get_flights(mr[-1].destination, dest, date, session=s):
                             if 3600 * args.min_stay < (flight.end - mr[-1].end).total_seconds() < 3600 * args.max_stay:
-                                if flight.destination==args.root_origin:
+                                if flight.destination==args.root_origin_code:
                                     if cheapest_route is None or (sum(f.euro for f in cheapest_route)/len(cheapest_route))>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
                                         cheapest_route = mr + [flight]
                                         print(

@@ -3,7 +3,7 @@ name: RyanAirRun
 on:
   workflow_dispatch:
     inputs:
-      root_origin:
+      root_origin_code:
       start_within_days:
       min_stay_hours:
       max_stay_hours:
@@ -23,7 +23,7 @@ jobs:
       run: pip install -r requirements.txt
     - run: > 
         python ryanair.py
-        --root_origin ${{ github.event.inputs.root_origin }}
+        --root_origin_code ${{ github.event.inputs.root_origin_code }}
         --start_within_days ${{ github.event.inputs.start_within_days }}
         --min_stay_hours ${{ github.event.inputs.min_stay_hours }}
         --max_stay_hours ${{ github.event.inputs.max_stay_hours }}
