@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     s = requests.Session()
     a = get_airports(session=s)
-    assert args.root_origin_code in a, f"root_origin_code must be on of {a}"
+    assert args.root_origin_code in a, f"root_origin_code must be on of {set(a.keys())}"
     
     for dest in get_destinations(args.root_origin_code, session=s):
         for date in tqdm(get_availabilities(args.root_origin_code, dest, session=s), desc=dest, disable=args.no_tqdm):
