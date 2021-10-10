@@ -136,7 +136,7 @@ if __name__ == "__main__":
     a = get_airports(session=s)
     assert args.root_origin_code in a, f"root_origin_code must be one of {set(a.keys())}"
         
-    whitelist = set(args.whitelist.split(","))
+    whitelist = {a.strip() for a in args.whitelist.split(",")}
     if len(whitelist)==0:
         whitelist = set(a.keys())
 
