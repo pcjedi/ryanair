@@ -121,6 +121,7 @@ if __name__ == "__main__":
     aparser.add_argument('--min_stay_hours', type=int)
     aparser.add_argument('--max_stay_hours', type=int)
     aparser.add_argument('--max_away_days', type=int)
+    aparser.add_argument('--whitelist', type=set)
     aparser.add_argument('--no_tqdm', action='store_true')
     aparser.add_argument('--early_quit', action='store_true')
     args = aparser.parse_args()
@@ -144,7 +145,7 @@ if __name__ == "__main__":
     mr = min_route(r)
     while mr is not None:
         for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
-            if dest not in {f.destination for f in mr}:
+            if dest not in {f.destination for f in mr}|args.whitelist:
                 for date in get_availabilities(mr[-1].destination, dest, session=s):
                     if 0 <= (date - mr[-1].end.date()).days <= 1 + args.max_stay_hours / 24 and (date - mr[0].start.date()).days < args.max_away_days:
                         for flight in get_flights(mr[-1].destination, dest, date, session=s):

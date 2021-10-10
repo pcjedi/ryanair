@@ -8,6 +8,7 @@ on:
       min_stay_hours:
       max_stay_hours:
       max_away_days:
+      whitelist:
 
 
 jobs:
@@ -28,4 +29,5 @@ jobs:
         --min_stay_hours ${{ github.event.inputs.min_stay_hours }}
         --max_stay_hours ${{ github.event.inputs.max_stay_hours }}
         --max_away_days ${{ github.event.inputs.max_away_days }}
+        --whitelist ${{ github.event.inputs.whitelist }}
         --no_tqdm
