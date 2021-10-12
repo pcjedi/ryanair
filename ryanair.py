@@ -150,7 +150,7 @@ if __name__ == "__main__":
     mr = min_route(r)
     while mr is not None:
         for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
-            if not in {f.destination for f in mr} and dest in whitelist:
+            if dest not in {f.destination for f in mr} and dest in whitelist:
                 for date in get_availabilities(mr[-1].destination, dest, session=s):
                     if 0 <= (date - mr[-1].end.date()).days <= 1 + args.max_stay_hours / 24 and (date - mr[0].start.date()).days < args.max_away_days:
                         for flight in get_flights(mr[-1].destination, dest, date, session=s):
