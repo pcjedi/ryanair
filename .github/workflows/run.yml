@@ -53,6 +53,7 @@ jobs:
 
   unique_country:
     runs-on: ubuntu-20.04
+    timeout-minutes: 600
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.9
