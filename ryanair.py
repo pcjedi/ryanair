@@ -137,9 +137,7 @@ if __name__ == "__main__":
     a = get_airports(session=s)
     assert args.root_origin_code in a, f"root_origin_code must be one of {set(a.keys())}"
         
-    whitelist = {a.strip() for a in args.whitelist} | {args.root_origin_code}
-    if len(whitelist)<2:
-        whitelist = set(a.keys())
+    whitelist = set(args.whitelist)
 
     for dest in get_destinations(args.root_origin_code, session=s):
         for date in tqdm(get_availabilities(args.root_origin_code, dest, session=s), desc=dest, disable=args.no_tqdm):
@@ -151,7 +149,10 @@ if __name__ == "__main__":
     mr = min_route(r)
     while mr is not None:
         for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
-            if dest not in {f.destination for f in mr} and dest in whitelist and (not args.unique_country or a[dest]["country"]["code"] not in {a[f.destination]["country"]["code"] for f in mr}):
+            if dest==args.root_origin_code or \
+                dest not in {f.destination for f in mr} and \
+                (len(whitelist)==0 or dest in whitelist) and \
+                (not args.unique_country or a[dest]["country"]["code"] not in {a[f.destination]["country"]["code"] for f in mr}):
                 for date in get_availabilities(mr[-1].destination, dest, session=s):
                     if 0 <= (date - mr[-1].end.date()).days <= 1 + args.max_stay_hours / 24 and (date - mr[0].start.date()).days < args.max_away_days:
                         for flight in get_flights(mr[-1].destination, dest, date, session=s):
