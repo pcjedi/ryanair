@@ -121,7 +121,7 @@ if __name__ == "__main__":
     aparser.add_argument('--min_stay_hours', type=int)
     aparser.add_argument('--max_stay_hours', type=int)
     aparser.add_argument('--max_away_days', type=int)
-    aparser.add_argument('--whitelist')
+    aparser.add_argument('--whitelist', nargs='*', default=[])
     aparser.add_argument('--no_tqdm', action='store_true')
     aparser.add_argument('--early_quit', action='store_true')
     aparser.add_argument('--unique_country', action='store_true')
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     a = get_airports(session=s)
     assert args.root_origin_code in a, f"root_origin_code must be one of {set(a.keys())}"
         
-    whitelist = {a.strip() for a in args.whitelist.split(",")} | {args.root_origin_code}
+    whitelist = {a.strip() for a in args.whitelist} | {args.root_origin_code}
     if len(whitelist)<2:
         whitelist = set(a.keys())
 
