@@ -124,13 +124,14 @@ if __name__ == "__main__":
     aparser.add_argument('--whitelist')
     aparser.add_argument('--no_tqdm', action='store_true')
     aparser.add_argument('--early_quit', action='store_true')
+    aparser.add_argument('--unique_country', action='store_true')
     args = aparser.parse_args()
 
     
     start_time = datetime.datetime.now()
     
     r = dict()
-    cheapest_route = None
+    cheapest_route = []
 
     s = requests.Session()
     a = get_airports(session=s)
@@ -150,13 +151,13 @@ if __name__ == "__main__":
     mr = min_route(r)
     while mr is not None:
         for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
-            if dest not in {f.destination for f in mr} and dest in whitelist:
+            if dest not in {f.destination for f in mr} and dest in whitelist and (not args.unique_country or a[dest]["coutry"]["code"] not in {a[f.destination]["coutry"]["code"] for f in mr}):
                 for date in get_availabilities(mr[-1].destination, dest, session=s):
                     if 0 <= (date - mr[-1].end.date()).days <= 1 + args.max_stay_hours / 24 and (date - mr[0].start.date()).days < args.max_away_days:
                         for flight in get_flights(mr[-1].destination, dest, date, session=s):
                             if 3600 * args.min_stay_hours < (flight.end - mr[-1].end).total_seconds() < 3600 * args.max_stay_hours:
                                 if flight.destination==args.root_origin_code:
-                                    if cheapest_route is None or (sum(f.euro for f in cheapest_route)/len(cheapest_route))>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
+                                    if len(cheapest_route)==0 or (sum(f.euro for f in cheapest_route)/len(cheapest_route))>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
                                         cheapest_route = mr + [flight]
                                         print(
                                             sum(f.euro for f in cheapest_route),
