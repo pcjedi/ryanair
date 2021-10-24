@@ -33,7 +33,7 @@ jobs:
 
   whitelist:
     runs-on: ubuntu-20.04
-    if: false()
+    if: false
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.9
@@ -54,7 +54,7 @@ jobs:
 
   unique_country:
     runs-on: ubuntu-20.04
-    if: false()
+    if: false
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.9
