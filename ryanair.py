@@ -150,6 +150,8 @@ if __name__ == "__main__":
     
     mr = min_route(r)
     while mr is not None:
+        if (datetime.datetime.now() - start_time).total_seconds() > 3600 * 5.9:
+            break
         for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
             if dest==args.root_origin_code or \
                 dest not in {f.destination for f in mr} and \
