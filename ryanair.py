@@ -53,25 +53,27 @@ def get_availabilities(origin, destination, session=requests):
 
 
 @cache
-def get_flights(origin, destination, availabilitie, session=requests):
+def get_flights(origin, destination, availabilitie, session=requests, retries=10):
+    assert retries>=0, "max retries reached"
     url = f"https://www.ryanair.com/api/booking/v4/de-de/availability?ADT=1&CHD=0&DateIn=&DateOut={availabilitie.strftime('%Y-%m-%d')}&Destination={destination}&Disc=0&INF=0&Origin={origin}&TEEN=0&promoCode=&IncludeConnectingFlights=false&FlexDaysBeforeOut=0&FlexDaysOut=0&ToUs=AGREED"
-    g = session.get(url)
-    r4 = g.json()
     r = set()
-    for date in r4["trips"][0]["dates"]:
-        for flight in date["flights"]:
-            if flight["faresLeft"] > 0:
-                r.add(
-                    Flight(
-                        start = parser.parse(flight["timeUTC"][0]),
-                        end = parser.parse(flight["timeUTC"][1]),
-                        origin = origin,
-                        destination = destination,
-                        amount = float(flight["regularFare"]["fares"][0]["amount"]),
-                        currency = r4["currency"],
+    try:
+        for date in session.get(url).json()["trips"][0]["dates"]:
+            for flight in date["flights"]:
+                if flight["faresLeft"] > 0:
+                    r.add(
+                        Flight(
+                            start = parser.parse(flight["timeUTC"][0]),
+                            end = parser.parse(flight["timeUTC"][1]),
+                            origin = origin,
+                            destination = destination,
+                            amount = float(flight["regularFare"]["fares"][0]["amount"]),
+                            currency = r4["currency"],
+                        )
                     )
-                )
-    return r
+        return r
+    except json.decoder.JSONDecodeError:
+        return get_flights(origin, destination, availabilitie, session=requests, retries=retries-1)
 
 
 @cache
