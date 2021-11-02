@@ -73,7 +73,8 @@ def get_flights(origin, destination, availabilitie, session=requests, retries=10
                         )
                     )
         return r
-    except json.decoder.JSONDecodeError:
+    except (json.decoder.JSONDecodeError, KeyError) as e:
+        print(e)
         return get_flights(origin, destination, availabilitie, session=requests, retries=retries-1)
 
 
