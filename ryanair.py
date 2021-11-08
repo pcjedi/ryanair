@@ -58,7 +58,8 @@ def get_flights(origin, destination, availabilitie, session=requests, retries=10
     url = f"https://www.ryanair.com/api/booking/v4/de-de/availability?ADT=1&CHD=0&DateIn=&DateOut={availabilitie.strftime('%Y-%m-%d')}&Destination={destination}&Disc=0&INF=0&Origin={origin}&TEEN=0&promoCode=&IncludeConnectingFlights=false&FlexDaysBeforeOut=0&FlexDaysOut=0&ToUs=AGREED"
     r = set()
     try:
-        r4 = session.get(url).json()
+        gurl= session.get(url)
+        r4 = gurl.json()
         for date in r4["trips"][0]["dates"]:
             for flight in date["flights"]:
                 if flight["faresLeft"] > 0:
@@ -73,8 +74,11 @@ def get_flights(origin, destination, availabilitie, session=requests, retries=10
                         )
                     )
         return r
-    except (json.decoder.JSONDecodeError, KeyError, requests.exceptions.ConnectionError) as e:
-        return get_flights(origin, destination, availabilitie, session=requests, retries=retries-1)
+    except json.decoder.JSONDecodeError as e:
+        print(e, gurl.text)
+        return get_flights(origin, destination, availabilitie, session=session, retries=retries-1)
+    except (KeyError, requests.exceptions.ConnectionError):
+        return get_flights(origin, destination, availabilitie, session=session, retries=retries-1)
 
 
 @cache
