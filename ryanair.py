@@ -5,6 +5,7 @@ from functools import cache
 from dateutil import parser
 from tqdm import tqdm
 import datetime
+import time
 
 
 class Flight:
@@ -76,8 +77,10 @@ def get_flights(origin, destination, availabilitie, session=requests, retries=10
         return r
     except json.decoder.JSONDecodeError as e:
         print(e, gurl.text)
+        time.sleep(max(0, 10/(retries + 1) - 2))
         return get_flights(origin, destination, availabilitie, session=session, retries=retries-1)
     except (KeyError, requests.exceptions.ConnectionError):
+        time.sleep(max(0, 10/(retries + 1) - 2))
         return get_flights(origin, destination, availabilitie, session=session, retries=retries-1)
 
 
