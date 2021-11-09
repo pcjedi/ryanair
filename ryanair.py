@@ -183,7 +183,8 @@ if __name__ == "__main__":
                                 if flight.destination==args.root_origin_code:
                                     [f.update(session=s) for f in mr]
                                     if min_av==None or min_av>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
-                                        min_av = sum(f.euro for f in mr + [flight])/len(mr + [flight])
+                                        cheapest_route = mr + [flight]
+                                        min_av = sum(f.euro for f in cheapest_route)/len(cheapest_route)
                                         print(
                                             sum(f.euro for f in cheapest_route),
                                             len(cheapest_route),
