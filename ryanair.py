@@ -6,6 +6,8 @@ from dateutil import parser
 from tqdm import tqdm
 import datetime
 import time
+import uuid
+from tenacity import retry, retry_if_exception_type, wait_exponential
 
 
 class Flight:
@@ -32,8 +34,24 @@ class Flight:
     def url(self):
         return f"https://www.ryanair.com/de/de/trip/flights/select?adults=1&teens=0&children=0&infants=0&dateOut={self.start.strftime('%Y-%m-%d')}&dateIn=&isConnectedFlight=false&isReturn=false&discount=0&promoCode=&originIata={self.origin}&destinationIata={self.destination}&tpAdults=1&tpTeens=0&tpChildren=0&tpInfants=0&tpStartDate={self.start.strftime('%Y-%m-%d')}&tpEndDate=&tpDiscount=0&tpPromoCode=&tpOriginIata={self.origin}&tpDestinationIata={self.destination}"
 
+    def update(self, session=requests):
+        for f in get_flights(
+            origin=self.origin,
+            destination=self.destination,
+            availabilitie=self.start,
+            session=session,
+            update=uuid.uuid4(),
+            ):
+            if f.start == self.start:
+                self.amount = f.amount
+                return
+        self.amount = 99999999
+
+
+
 
 @cache
+@retry(retry=retry_if_exception_type(json.decoder.JSONDecodeError, KeyError, requests.exceptions.ConnectionError), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_airports(session=requests):
     g = session.get("https://www.ryanair.com/api/locate/v1/autocomplete/airports?phrase=&market=de-de")
     airports_raw = g.json()
@@ -41,6 +59,7 @@ def get_airports(session=requests):
 
 
 @cache
+@retry(retry=retry_if_exception_type(json.decoder.JSONDecodeError, KeyError, requests.exceptions.ConnectionError), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_destinations(origin, session=requests):
     g = session.get(f"https://www.ryanair.com/api/locate/v1/autocomplete/routes?arrivalPhrase=&departurePhrase={origin}&market=de-de")
     r2 = g.json()
@@ -48,43 +67,38 @@ def get_destinations(origin, session=requests):
 
 
 @cache
+@retry(retry=retry_if_exception_type(json.decoder.JSONDecodeError, KeyError, requests.exceptions.ConnectionError), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_availabilities(origin, destination, session=requests):
     g = session.get(f"https://www.ryanair.com/api/farfnd/3/oneWayFares/{origin}/{destination}/availabilities")
     return [parser.parse(d).date() for d in g.json()]
 
 
 @cache
-def get_flights(origin, destination, availabilitie, session=requests, retries=10):
+@retry(retry=retry_if_exception_type(json.decoder.JSONDecodeError, KeyError, requests.exceptions.ConnectionError), wait=wait_exponential(multiplier=1, min=0, max=70))
+def get_flights(origin, destination, availabilitie, session=requests, update=None):
     assert retries>=0, "max retries reached"
     url = f"https://www.ryanair.com/api/booking/v4/de-de/availability?ADT=1&CHD=0&DateIn=&DateOut={availabilitie.strftime('%Y-%m-%d')}&Destination={destination}&Disc=0&INF=0&Origin={origin}&TEEN=0&promoCode=&IncludeConnectingFlights=false&FlexDaysBeforeOut=0&FlexDaysOut=0&ToUs=AGREED"
     r = set()
-    try:
-        gurl= session.get(url)
-        r4 = gurl.json()
-        for date in r4["trips"][0]["dates"]:
-            for flight in date["flights"]:
-                if flight["faresLeft"] > 0:
-                    r.add(
-                        Flight(
-                            start = parser.parse(flight["timeUTC"][0]),
-                            end = parser.parse(flight["timeUTC"][1]),
-                            origin = origin,
-                            destination = destination,
-                            amount = float(flight["regularFare"]["fares"][0]["amount"]),
-                            currency = r4["currency"],
-                        )
+    gurl= session.get(url)
+    r4 = gurl.json()
+    for date in r4["trips"][0]["dates"]:
+        for flight in date["flights"]:
+            if flight["faresLeft"] > 0:
+                r.add(
+                    Flight(
+                        start = parser.parse(flight["timeUTC"][0]),
+                        end = parser.parse(flight["timeUTC"][1]),
+                        origin = origin,
+                        destination = destination,
+                        amount = float(flight["regularFare"]["fares"][0]["amount"]),
+                        currency = r4["currency"],
                     )
-        return r
-    except json.decoder.JSONDecodeError as e:
-        print(e, gurl.text)
-        time.sleep(max(0, 10/(retries + 1) - 2))
-        return get_flights(origin, destination, availabilitie, session=session, retries=retries-1)
-    except (KeyError, requests.exceptions.ConnectionError):
-        time.sleep(max(0, 10/(retries + 1) - 2))
-        return get_flights(origin, destination, availabilitie, session=session, retries=retries-1)
+                )
+    return r
 
 
 @cache
+@retry(retry=retry_if_exception_type(json.decoder.JSONDecodeError, KeyError, requests.exceptions.ConnectionError), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_rates(base="EUR", session=requests):
     g = session.get(f"https://api.exchangerate.host/latest?base={base}")
     return g.json()["rates"]
@@ -141,12 +155,12 @@ if __name__ == "__main__":
     start_time = datetime.datetime.now()
     
     r = dict()
-    cheapest_route = []
+    min_av = None
 
     s = requests.Session()
     a = get_airports(session=s)
     assert args.root_origin_code in a, f"root_origin_code must be one of {set(a.keys())}"
-        
+
     whitelist = set(args.whitelist)
 
     for dest in get_destinations(args.root_origin_code, session=s):
@@ -155,7 +169,7 @@ if __name__ == "__main__":
                 for flight in get_flights(args.root_origin_code, dest, date, session=s):
                     if flight not in r:
                         r[flight] = {}
-    
+
     mr = min_route(r)
     while mr is not None:
         if (datetime.datetime.now() - start_time).total_seconds() > 3600 * 5.9:
@@ -170,8 +184,9 @@ if __name__ == "__main__":
                         for flight in get_flights(mr[-1].destination, dest, date, session=s):
                             if 3600 * args.min_stay_hours < (flight.end - mr[-1].end).total_seconds() < 3600 * args.max_stay_hours:
                                 if flight.destination==args.root_origin_code:
-                                    if len(cheapest_route)==0 or (sum(f.euro for f in cheapest_route)/len(cheapest_route))>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
-                                        cheapest_route = mr + [flight]
+                                    [f.update(session=s) for f in mr]
+                                    if min_av==None or min_av>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
+                                        min_av = sum(f.euro for f in mr + [flight])/len(mr + [flight])
                                         print(
                                             sum(f.euro for f in cheapest_route),
                                             len(cheapest_route),
@@ -183,7 +198,7 @@ if __name__ == "__main__":
                                         )
                                 else:
                                     get(r, mr)[flight] = {}
-        
+
         if len(get(r, mr))==0:
             set_none(r, mr)
 
