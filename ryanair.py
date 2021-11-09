@@ -48,10 +48,8 @@ class Flight:
         self.amount = 99999999
 
 
-
-
 @cache
-@retry(retry=retry_if_exception_type(json.decoder.JSONDecodeError, KeyError, requests.exceptions.ConnectionError), wait=wait_exponential(multiplier=1, min=0, max=70))
+@retry(retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_airports(session=requests):
     g = session.get("https://www.ryanair.com/api/locate/v1/autocomplete/airports?phrase=&market=de-de")
     airports_raw = g.json()
@@ -59,7 +57,7 @@ def get_airports(session=requests):
 
 
 @cache
-@retry(retry=retry_if_exception_type(json.decoder.JSONDecodeError, KeyError, requests.exceptions.ConnectionError), wait=wait_exponential(multiplier=1, min=0, max=70))
+@retry(retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_destinations(origin, session=requests):
     g = session.get(f"https://www.ryanair.com/api/locate/v1/autocomplete/routes?arrivalPhrase=&departurePhrase={origin}&market=de-de")
     r2 = g.json()
@@ -67,14 +65,14 @@ def get_destinations(origin, session=requests):
 
 
 @cache
-@retry(retry=retry_if_exception_type(json.decoder.JSONDecodeError, KeyError, requests.exceptions.ConnectionError), wait=wait_exponential(multiplier=1, min=0, max=70))
+@retry(retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_availabilities(origin, destination, session=requests):
     g = session.get(f"https://www.ryanair.com/api/farfnd/3/oneWayFares/{origin}/{destination}/availabilities")
     return [parser.parse(d).date() for d in g.json()]
 
 
 @cache
-@retry(retry=retry_if_exception_type(json.decoder.JSONDecodeError, KeyError, requests.exceptions.ConnectionError), wait=wait_exponential(multiplier=1, min=0, max=70))
+@retry(retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_flights(origin, destination, availabilitie, session=requests, update=None):
     assert retries>=0, "max retries reached"
     url = f"https://www.ryanair.com/api/booking/v4/de-de/availability?ADT=1&CHD=0&DateIn=&DateOut={availabilitie.strftime('%Y-%m-%d')}&Destination={destination}&Disc=0&INF=0&Origin={origin}&TEEN=0&promoCode=&IncludeConnectingFlights=false&FlexDaysBeforeOut=0&FlexDaysOut=0&ToUs=AGREED"
@@ -98,7 +96,7 @@ def get_flights(origin, destination, availabilitie, session=requests, update=Non
 
 
 @cache
-@retry(retry=retry_if_exception_type(json.decoder.JSONDecodeError, KeyError, requests.exceptions.ConnectionError), wait=wait_exponential(multiplier=1, min=0, max=70))
+@retry(retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_rates(base="EUR", session=requests):
     g = session.get(f"https://api.exchangerate.host/latest?base={base}")
     return g.json()["rates"]
