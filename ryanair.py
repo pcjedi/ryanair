@@ -52,7 +52,7 @@ class Flight:
 @retry(retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_airports(session=requests):
     url = "https://www.ryanair.com/api/locate/v1/autocomplete/airports"
-    airports = json.load(open("airports.json", "r")) 
+    airports = json.load(open("airports.json", "r"))
     airports |= {airport["code"]:airport for airport in session.get(url).json()}
     json.dump(airports, open("airports.json", "w"))
     return airports
@@ -167,6 +167,8 @@ if __name__ == "__main__":
 
     assert args.root_origin_code in a, f"root_origin_code must be one of {set(a.keys())}"
     assert country_black_list - set(countries.keys()) == set(), f"country black list items must all be in {countries}"
+
+    print(f"{ len(country_black_list) } countries blacklisted, airports: { {aa["name"] for aa in a.values() if aa["country"]["code"] in country_black_list} }")
 
 
     for dest in get_destinations(args.root_origin_code, session=s):
