@@ -51,9 +51,12 @@ class Flight:
 @cache
 @retry(retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_airports(session=requests):
-    g = session.get("https://www.ryanair.com/api/locate/v1/autocomplete/airports?phrase=&market=de-de")
-    airports_raw = g.json()
-    return {rr["code"]:rr for rr in airports_raw}
+    url = "https://www.ryanair.com/api/locate/v1/autocomplete/airports"
+    with f as open("airports.json", "w"):
+        airports = json.load(f) 
+        airports |= {airport["code"]:airport for airport in session.get(url).json()}
+        json.dump(airports, f)
+    return airports
 
 
 @cache
