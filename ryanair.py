@@ -146,6 +146,7 @@ if __name__ == "__main__":
     aparser.add_argument('--no_tqdm', action='store_true')
     aparser.add_argument('--early_quit', action='store_true')
     aparser.add_argument('--unique_country', action='store_true')
+    aparser.add_argument('--country_black_list', nargs='*', default=[])
     args = aparser.parse_args()
 
     
@@ -156,9 +157,15 @@ if __name__ == "__main__":
 
     s = requests.Session()
     a = get_airports(session=s)
-    assert args.root_origin_code in a, f"root_origin_code must be one of {set(a.keys())}"
+    print(f"found {len(a)} airports: {a.keys()}")
 
+    countries = {aa["country"]["code"]:aa["country"]["name"] for aa in a.values()}
     whitelist = set(args.whitelist)
+    country_black_list = set(args.country_black_list)
+
+    assert args.root_origin_code in a, f"root_origin_code must be one of {set(a.keys())}"
+    assert country_black_list - set(countries.keys()) == set(), f"country black list items must all be in {countries}"
+
 
     for dest in get_destinations(args.root_origin_code, session=s):
         for date in tqdm(get_availabilities(args.root_origin_code, dest, session=s), desc=dest, disable=args.no_tqdm):
@@ -175,6 +182,7 @@ if __name__ == "__main__":
             if dest==args.root_origin_code or \
                 dest not in {f.destination for f in mr} and \
                 (len(whitelist)==0 or dest in whitelist) and \
+                a[dest]["country"]["code"] not in country_black_list and \
                 (not args.unique_country or a[dest]["country"]["code"] not in {a[f.destination]["country"]["code"] for f in mr}):
                 for date in get_availabilities(mr[-1].destination, dest, session=s):
                     if 0 <= (date - mr[-1].end.date()).days <= 1 + args.max_stay_hours / 24 and (date - mr[0].start.date()).days < args.max_away_days:

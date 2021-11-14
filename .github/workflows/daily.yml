@@ -1,6 +1,7 @@
 name: RyanAirRun - Daily
 
 on:
+  push:
   workflow_dispatch:
   schedule:
     - cron: "0 10,22 * * *"
@@ -20,6 +21,7 @@ jobs:
         --min_stay_hours 14
         --max_stay_hours 72
         --max_away_days 13
+        --country_black_list gb
         --no_tqdm
 
   unique_country:
@@ -40,4 +42,5 @@ jobs:
         --max_stay_hours 72
         --max_away_days 13
         --unique_country
+        --country_black_list gb
         --no_tqdm
