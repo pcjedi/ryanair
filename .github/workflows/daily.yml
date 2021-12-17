@@ -20,9 +20,9 @@ jobs:
         python ryanair.py
         --root_origin_code HAM
         --start_within_days 500
-        --min_stay_hours 22
+        --min_stay_hours 0
         --max_stay_hours 72
-        --max_away_days 11
+        --max_away_days 15
         --no_tqdm
 
   unique_country:
@@ -39,8 +39,8 @@ jobs:
         python ryanair.py
         --root_origin_code HAM
         --start_within_days 500
-        --min_stay_hours 22
+        --min_stay_hours 0
         --max_stay_hours 72
-        --max_away_days 11
+        --max_away_days 15
         --unique_country
         --no_tqdm
