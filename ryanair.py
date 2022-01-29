@@ -205,14 +205,16 @@ if __name__ == "__main__":
 
     update = uuid.uuid4()
     [f.update(session=s, update=update) for r in closed_routes for f in r]
-    
-    for route in sorted(
+
+    sorted_routes = sorted(
         iterable = filter(
             function=lambda r: not any(f.amount is None for f in r)
             iterable=closed_routes,
-            ),
+        ),
         key=lambda r:sum(f.euro for f in r)/len(r),
-        ):
+    )
+    
+    for route in sorted_routes:
         print(
             sum(f.euro for f in route),
             len(route),
