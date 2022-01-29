@@ -183,7 +183,7 @@ if __name__ == "__main__":
 
     mr = min_route(r)
     closed_routes = []
-    while mr is not None and (datetime.datetime.now() - start_time).total_seconds() < 3600 / 2:
+    while mr is not None and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5:
         for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
             if dest==args.root_origin_code or \
                 dest not in {f.destination for f in mr} and \
@@ -196,7 +196,6 @@ if __name__ == "__main__":
                             if 3600 * args.min_stay_hours < (flight.start - mr[-1].end).total_seconds() < 3600 * args.max_stay_hours:
                                 if flight.destination==args.root_origin_code:
                                     closed_routes.append(mr + [flight])
-                                    print(closed_routes[-1])
                                 else:
                                     get(r, mr)[flight] = {}
 
