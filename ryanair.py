@@ -34,10 +34,9 @@ class Flight:
     def url(self):
         return f"https://www.ryanair.com/de/de/trip/flights/select?adults=1&teens=0&children=0&infants=0&dateOut={self.start.strftime('%Y-%m-%d')}&dateIn=&isConnectedFlight=false&isReturn=false&discount=0&promoCode=&originIata={self.origin}&destinationIata={self.destination}&tpAdults=1&tpTeens=0&tpChildren=0&tpInfants=0&tpStartDate={self.start.strftime('%Y-%m-%d')}&tpEndDate=&tpDiscount=0&tpPromoCode=&tpOriginIata={self.origin}&tpDestinationIata={self.destination}"
 
-    def update(self, session=requests, update=None):
+    def update(self, session=requests, update=None, amount_update=None):
         if update is None:
             update = uuid.uuid4()
-        amount_update = 99999999
         for f in get_flights(
             origin=self.origin,
             destination=self.destination,
@@ -183,7 +182,7 @@ if __name__ == "__main__":
 
     mr = min_route(r)
     closed_routes = []
-    while mr is not None and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5:
+    while mr is not None and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5.9:
         for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
             if dest==args.root_origin_code or \
                 dest not in {f.destination for f in mr} and \
@@ -207,7 +206,13 @@ if __name__ == "__main__":
     update = uuid.uuid4()
     [f.update(session=s, update=update) for r in closed_routes for f in r]
     
-    for route in sorted(closed_routes, key=lambda r:sum(f.euro for f in r)/len(r)):
+    for route in sorted(
+        iterable = filter(
+            function=lambda r: not any(f.amount is None for f in r)
+            iterable=closed_routes,
+            ),
+        key=lambda r:sum(f.euro for f in r)/len(r),
+        ):
         print(
             sum(f.euro for f in route),
             len(route),
