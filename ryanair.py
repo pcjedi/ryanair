@@ -34,18 +34,20 @@ class Flight:
     def url(self):
         return f"https://www.ryanair.com/de/de/trip/flights/select?adults=1&teens=0&children=0&infants=0&dateOut={self.start.strftime('%Y-%m-%d')}&dateIn=&isConnectedFlight=false&isReturn=false&discount=0&promoCode=&originIata={self.origin}&destinationIata={self.destination}&tpAdults=1&tpTeens=0&tpChildren=0&tpInfants=0&tpStartDate={self.start.strftime('%Y-%m-%d')}&tpEndDate=&tpDiscount=0&tpPromoCode=&tpOriginIata={self.origin}&tpDestinationIata={self.destination}"
 
-    def update(self, session=requests):
+    def update(self, session=requests, update=None):
+        if update is None:
+            update = uuid.uuid4()
+        amount_update = 99999999
         for f in get_flights(
             origin=self.origin,
             destination=self.destination,
             availabilitie=self.start,
             session=session,
-            update=uuid.uuid4(),
+            update=update,
             ):
             if f.start == self.start:
-                self.amount = f.amount
-                return
-        self.amount = 99999999
+                amount_update = f.amount
+        self.amount = amount_update
 
 
 @cache
@@ -155,7 +157,6 @@ if __name__ == "__main__":
     start_time = datetime.datetime.now()
     
     r = dict()
-    min_av = None
 
     s = requests.Session()
     a = get_airports(session=s)
@@ -181,9 +182,8 @@ if __name__ == "__main__":
                             r[flight] = {}
 
     mr = min_route(r)
-    while mr is not None:
-        if (datetime.datetime.now() - start_time).total_seconds() > 3600 * 5.9:
-            break
+    closed_routes = []
+    while mr is not None and (datetime.datetime.now() - start_time).total_seconds() < 3600 / 2:
         for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
             if dest==args.root_origin_code or \
                 dest not in {f.destination for f in mr} and \
@@ -195,19 +195,8 @@ if __name__ == "__main__":
                         for flight in get_flights(mr[-1].destination, dest, date, session=s):
                             if 3600 * args.min_stay_hours < (flight.start - mr[-1].end).total_seconds() < 3600 * args.max_stay_hours:
                                 if flight.destination==args.root_origin_code:
-                                    [f.update(session=s) for f in mr]
-                                    if min_av==None or min_av>(sum(f.euro for f in mr + [flight])/len(mr + [flight])):
-                                        cheapest_route = mr + [flight]
-                                        min_av = sum(f.euro for f in cheapest_route)/len(cheapest_route)
-                                        print(
-                                            sum(f.euro for f in cheapest_route),
-                                            len(cheapest_route),
-                                            sum(f.euro for f in cheapest_route)/len(cheapest_route),
-                                            cheapest_route,
-                                            [(a[f1.destination]["name"], str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(cheapest_route, cheapest_route[1:])],
-                                            [f.url for f in cheapest_route],
-                                            str(datetime.datetime.now() - start_time),
-                                        )
+                                    closed_routes.append(mr + [flight])
+                                    print(closed_routes[-1])
                                 else:
                                     get(r, mr)[flight] = {}
 
@@ -215,3 +204,16 @@ if __name__ == "__main__":
             set_none(r, mr)
 
         mr = min_route(r)
+
+    update = uuid.uuid4()
+    [f.update(session=s, update=update) for r in closed_routes for f in r]
+    
+    for route in sorted(closed_routes, key=lambda r:sum(f.euro for f in r)/len(r)):
+        print(
+            sum(f.euro for f in route),
+            len(route),
+            sum(f.euro for f in route)/len(route),
+            route,
+            [(a[f1.destination]["name"], str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
+            [f.url for f in route],
+        )
