@@ -208,8 +208,8 @@ if __name__ == "__main__":
     
     for route in sorted(
         iterable = filter(
-            function=lambda r: not any(f.amount is None for f in r),
-            iterable=closed_routes,
+            lambda r: not any(f.amount is None for f in r),
+            closed_routes,
         ),
         key=lambda r:sum(f.euro for f in r)/len(r),
     ):
