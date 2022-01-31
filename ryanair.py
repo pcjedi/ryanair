@@ -207,7 +207,7 @@ if __name__ == "__main__":
     [f.update(session=s, update=update) for r in closed_routes for f in r]
     
     for route in sorted(
-        iterable = filter(
+        filter(
             lambda r: not any(f.amount is None for f in r),
             closed_routes,
         ),
