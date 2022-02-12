@@ -171,7 +171,7 @@ if __name__ == "__main__":
     assert country_blacklist - set(countries.keys()) == set(), f"country black list items must all be in {countries}"
     assert blacklist - set(a.keys()) == set(), f"blacklisted must be in {a.keys()}"
 
-    print(f"{ len(country_blacklist) } countries blacklisted, airports: { {aa['name'] for aa in a.values() if aa['country']['code'] in country_black_list} }")
+    print(f"{ len(country_blacklist) } countries blacklisted, airports: { {aa['name'] for aa in a.values() if aa['country']['code'] in country_blacklist} }")
     print({a[dest]["name"]:a[dest]["country"]["code"] not in country_blacklist for dest in a})
 
 
