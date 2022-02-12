@@ -149,7 +149,8 @@ if __name__ == "__main__":
     aparser.add_argument('--no_tqdm', action='store_true')
     aparser.add_argument('--early_quit', action='store_true')
     aparser.add_argument('--unique_country', action='store_true')
-    aparser.add_argument('--country_black_list', nargs='*', default=[])
+    aparser.add_argument('--country_blacklist', nargs='*', default=[])
+    aparser.add_argument('--black_list', nargs='*', default=[])
     args = aparser.parse_args()
 
     
@@ -163,7 +164,8 @@ if __name__ == "__main__":
 
     countries = {aa["country"]["code"]:aa["country"]["name"] for aa in a.values()}
     whitelist = set(args.whitelist)
-    country_black_list = set(args.country_black_list)
+    country_blacklist = set(args.country_blacklist)
+    blacklist = set(args.blacklist)
 
     assert args.root_origin_code in a, f"root_origin_code must be one of {set(a.keys())}"
     assert country_black_list - set(countries.keys()) == set(), f"country black list items must all be in {countries}"
@@ -173,7 +175,9 @@ if __name__ == "__main__":
 
 
     for dest in get_destinations(args.root_origin_code, session=s):
-        if (len(whitelist)==0 or dest in whitelist) and a[dest]["country"]["code"] not in country_black_list:
+        if (len(whitelist)==0 or dest in whitelist) and \
+        a[dest]["country"]["code"] not in country_black_list and \
+        dest not in blacklist:
             for date in tqdm(get_availabilities(args.root_origin_code, dest, session=s), desc=dest, disable=args.no_tqdm):
                 if date < datetime.date.today() + datetime.timedelta(args.start_within_days):
                     for flight in get_flights(args.root_origin_code, dest, date, session=s):
@@ -185,10 +189,11 @@ if __name__ == "__main__":
     while mr is not None and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5.9:
         for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
             if dest==args.root_origin_code or \
-                dest not in {f.destination for f in mr} and \
-                (len(whitelist)==0 or dest in whitelist) and \
-                a[dest]["country"]["code"] not in country_black_list and \
-                (not args.unique_country or a[dest]["country"]["code"] not in {a[f.destination]["country"]["code"] for f in mr}):
+            dest not in {f.destination for f in mr} and \
+            (len(whitelist)==0 or dest in whitelist) and \
+            dest not in blacklist and \
+            a[dest]["country"]["code"] not in country_black_list and \
+            (not args.unique_country or a[dest]["country"]["code"] not in {a[f.destination]["country"]["code"] for f in mr}):
                 for date in get_availabilities(mr[-1].destination, dest, session=s):
                     if 0 <= (date - mr[-1].end.date()).days <= 1 + args.max_stay_hours / 24 and (date - mr[0].start.date()).days < args.max_away_days:
                         for flight in get_flights(mr[-1].destination, dest, date, session=s):

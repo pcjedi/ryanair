@@ -11,12 +11,12 @@ on:
 
 jobs:
   all:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
     - run: pip install -r requirements.txt
-    - run: > 
+    - run: >
         python ryanair.py
         --root_origin_code HAM
         --start_within_days 500
@@ -25,8 +25,24 @@ jobs:
         --max_away_days 15
         --no_tqdm
 
+  blacklist:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - run: pip install -r requirements.txt
+    - run: >
+        python ryanair.py
+        --root_origin_code HAM
+        --blacklist CRL
+        --start_within_days 500
+        --min_stay_hours 8
+        --max_stay_hours 72
+        --max_away_days 15
+        --no_tqdm
+
   unique_country:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.9
