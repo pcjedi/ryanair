@@ -150,7 +150,7 @@ if __name__ == "__main__":
     aparser.add_argument('--early_quit', action='store_true')
     aparser.add_argument('--unique_country', action='store_true')
     aparser.add_argument('--country_blacklist', nargs='*', default=[])
-    aparser.add_argument('--black_list', nargs='*', default=[])
+    aparser.add_argument('--blacklist', nargs='*', default=[])
     args = aparser.parse_args()
 
     
