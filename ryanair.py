@@ -168,7 +168,8 @@ if __name__ == "__main__":
     blacklist = set(args.blacklist)
 
     assert args.root_origin_code in a, f"root_origin_code must be one of {set(a.keys())}"
-    assert country_black_list - set(countries.keys()) == set(), f"country black list items must all be in {countries}"
+    assert country_blacklist - set(countries.keys()) == set(), f"country black list items must all be in {countries}"
+    assert blacklist - set(a.keys()) == set(), f"blacklisted must be in {a.keys()}"
 
     print(f"{ len(country_black_list) } countries blacklisted, airports: { {aa['name'] for aa in a.values() if aa['country']['code'] in country_black_list} }")
     print({a[dest]["name"]:a[dest]["country"]["code"] not in country_black_list for dest in a})
