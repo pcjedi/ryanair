@@ -13,8 +13,8 @@ jobs:
   all:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/checkout@main
+    - uses: actions/setup-python@main
     - run: pip install -r requirements.txt
     - run: >
         python ryanair.py
@@ -28,8 +28,8 @@ jobs:
   blacklist:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/checkout@main
+    - uses: actions/setup-python@main
     - run: pip install -r requirements.txt
     - run: >
         python ryanair.py
@@ -44,13 +44,9 @@ jobs:
   unique_country:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-    - name: Install dependencies
-      run: pip install -r requirements.txt
+    - uses: actions/checkout@main
+    - uses: actions/setup-python@main
+    - run: pip install -r requirements.txt
     - run: > 
         python ryanair.py
         --root_origin_code HAM
@@ -64,13 +60,9 @@ jobs:
   blacklist_unique_country:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-    - name: Install dependencies
-      run: pip install -r requirements.txt
+    - uses: actions/checkout@main
+    - uses: actions/setup-python@main
+    - run: pip install -r requirements.txt
     - run: > 
         python ryanair.py
         --root_origin_code HAM
