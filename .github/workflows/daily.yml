@@ -60,3 +60,24 @@ jobs:
         --max_away_days 15
         --unique_country
         --no_tqdm
+
+  blacklist_unique_country:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+    - run: > 
+        python ryanair.py
+        --root_origin_code HAM
+        --blacklist CRL
+        --start_within_days 500
+        --min_stay_hours 8
+        --max_stay_hours 72
+        --max_away_days 15
+        --unique_country
+        --no_tqdm
