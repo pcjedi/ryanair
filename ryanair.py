@@ -171,13 +171,13 @@ if __name__ == "__main__":
     assert country_blacklist - set(countries.keys()) == set(), f"country black list items must all be in {countries}"
     assert blacklist - set(a.keys()) == set(), f"blacklisted must be in {a.keys()}"
 
-    print(f"{ len(country_black_list) } countries blacklisted, airports: { {aa['name'] for aa in a.values() if aa['country']['code'] in country_black_list} }")
-    print({a[dest]["name"]:a[dest]["country"]["code"] not in country_black_list for dest in a})
+    print(f"{ len(country_blacklist) } countries blacklisted, airports: { {aa['name'] for aa in a.values() if aa['country']['code'] in country_black_list} }")
+    print({a[dest]["name"]:a[dest]["country"]["code"] not in country_blacklist for dest in a})
 
 
     for dest in get_destinations(args.root_origin_code, session=s):
         if (len(whitelist)==0 or dest in whitelist) and \
-        a[dest]["country"]["code"] not in country_black_list and \
+        a[dest]["country"]["code"] not in country_blacklist and \
         dest not in blacklist:
             for date in tqdm(get_availabilities(args.root_origin_code, dest, session=s), desc=dest, disable=args.no_tqdm):
                 if date < datetime.date.today() + datetime.timedelta(args.start_within_days):
@@ -193,7 +193,7 @@ if __name__ == "__main__":
             dest not in {f.destination for f in mr} and \
             (len(whitelist)==0 or dest in whitelist) and \
             dest not in blacklist and \
-            a[dest]["country"]["code"] not in country_black_list and \
+            a[dest]["country"]["code"] not in country_blacklist and \
             (not args.unique_country or a[dest]["country"]["code"] not in {a[f.destination]["country"]["code"] for f in mr}):
                 for date in get_availabilities(mr[-1].destination, dest, session=s):
                     if 0 <= (date - mr[-1].end.date()).days <= 1 + args.max_stay_hours / 24 and (date - mr[0].start.date()).days < args.max_away_days:
