@@ -187,7 +187,7 @@ if __name__ == "__main__":
 
     mr = min_route(r)
     closed_routes = []
-    while mr is not None and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5.9:
+    while mr is not None and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5.8:
         for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
             if dest==args.root_origin_code or \
             dest not in {f.destination for f in mr} and \
@@ -217,12 +217,14 @@ if __name__ == "__main__":
             lambda r: not any(f.amount is None for f in r),
             closed_routes,
         ),
-        key=lambda r:sum(f.euro for f in r)/len(r),
+        key=lambda r:sum(f.euro for f in r)/(len(r)-1),
     ):
         print(
             sum(f.euro for f in route),
             len(route),
             sum(f.euro for f in route)/len(route),
+            route[0].start,
+            route[-1].end,
             route,
             [(a[f1.destination]["name"], str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
             [f.url for f in route],
