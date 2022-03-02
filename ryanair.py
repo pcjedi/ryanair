@@ -145,12 +145,13 @@ if __name__ == "__main__":
     aparser.add_argument('--min_stay_hours', type=int)
     aparser.add_argument('--max_stay_hours', type=int)
     aparser.add_argument('--max_away_days', type=int)
-    aparser.add_argument('--whitelist', nargs='*', default=[])
     aparser.add_argument('--no_tqdm', action='store_true')
     aparser.add_argument('--early_quit', action='store_true')
     aparser.add_argument('--unique_country', action='store_true')
     aparser.add_argument('--country_blacklist', nargs='*', default=[])
     aparser.add_argument('--blacklist', nargs='*', default=[])
+    aparser.add_argument('--country_whitelist', nargs='*', default=[])
+    aparser.add_argument('--whitelist', nargs='*', default=[])
     args = aparser.parse_args()
 
     
@@ -166,9 +167,11 @@ if __name__ == "__main__":
     whitelist = set(args.whitelist)
     country_blacklist = set(args.country_blacklist)
     blacklist = set(args.blacklist)
+    country_whitelist = set(args.country_whitelist)
 
     assert args.root_origin_code in a, f"root_origin_code must be one of {set(a.keys())}"
     assert country_blacklist - set(countries.keys()) == set(), f"country black list items must all be in {countries}"
+    assert country_whitelist - set(countries.keys()) == set(), f"country white list items must all be in {countries}"
     assert blacklist - set(a.keys()) == set(), f"blacklisted must be in {a.keys()}"
 
     print(f"{ len(country_blacklist) } countries blacklisted, airports: { {aa['name'] for aa in a.values() if aa['country']['code'] in country_blacklist} }")
@@ -177,6 +180,7 @@ if __name__ == "__main__":
 
     for dest in get_destinations(args.root_origin_code, session=s):
         if (len(whitelist)==0 or dest in whitelist) and \
+        (len(country_whitelist)==0 or a[dest]["country"]["code"] in country_whitelist) and \
         a[dest]["country"]["code"] not in country_blacklist and \
         dest not in blacklist:
             for date in tqdm(get_availabilities(args.root_origin_code, dest, session=s), desc=dest, disable=args.no_tqdm):
@@ -192,6 +196,7 @@ if __name__ == "__main__":
             if dest==args.root_origin_code or \
             dest not in {f.destination for f in mr} and \
             (len(whitelist)==0 or dest in whitelist) and \
+            (len(country_whitelist)==0 or a[dest]["country"]["code"] in country_whitelist) and \
             dest not in blacklist and \
             a[dest]["country"]["code"] not in country_blacklist and \
             (not args.unique_country or a[dest]["country"]["code"] not in {a[f.destination]["country"]["code"] for f in mr}):
