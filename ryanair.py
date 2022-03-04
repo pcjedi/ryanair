@@ -7,7 +7,7 @@ from tqdm import tqdm
 import datetime
 import time
 import uuid
-from tenacity import retry, retry_if_exception_type, wait_exponential
+from tenacity import retry, retry_if_exception_type, wait_exponential, stop_after_attempt
 
 
 class Flight:
@@ -50,7 +50,7 @@ class Flight:
 
 
 @cache
-@retry(retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
+@retry(stop=stop_after_attempt(7), retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
 def get_airports(session=requests):
     url = "https://www.ryanair.com/api/locate/v1/autocomplete/airports"
     airports = {airport["code"]:airport for airport in json.load(open("airports.json", "r"))}
