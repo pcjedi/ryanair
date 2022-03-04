@@ -214,6 +214,7 @@ if __name__ == "__main__":
 
         mr = min_route(r)
 
+    print(f"found {len(closed_routes)} closed routes")
     update = uuid.uuid4()
     [f.update(session=s, update=update) for r in closed_routes for f in r]
     
