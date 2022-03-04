@@ -8,6 +8,8 @@ on:
   schedule:
     - cron: "0 10,22 * * *"
 
+env:
+  PYTHONUNBUFFERED: true
 
 jobs:
   all:
