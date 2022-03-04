@@ -81,19 +81,23 @@ def get_flights(origin, destination, availabilitie, session=requests, update=Non
     r = set()
     gurl= session.get(url)
     r4 = gurl.json()
-    for date in r4["trips"][0]["dates"]:
-        for flight in date["flights"]:
-            if flight["faresLeft"] > 0:
-                r.add(
-                    Flight(
-                        start = parser.parse(flight["timeUTC"][0]),
-                        end = parser.parse(flight["timeUTC"][1]),
-                        origin = origin,
-                        destination = destination,
-                        amount = float(flight["regularFare"]["fares"][0]["amount"]),
-                        currency = r4["currency"],
+    try:
+        for date in r4["trips"][0]["dates"]:
+            for flight in date["flights"]:
+                if flight["faresLeft"] > 0:
+                    r.add(
+                        Flight(
+                            start = parser.parse(flight["timeUTC"][0]),
+                            end = parser.parse(flight["timeUTC"][1]),
+                            origin = origin,
+                            destination = destination,
+                            amount = float(flight["regularFare"]["fares"][0]["amount"]),
+                            currency = r4["currency"],
+                        )
                     )
-                )
+    except KeyError:
+        print(r4)
+        raise
     return r
 
 
