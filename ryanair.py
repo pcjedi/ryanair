@@ -95,8 +95,8 @@ def get_flights(origin, destination, availabilitie, session=requests, update=Non
                             currency = r4["currency"],
                         )
                     )
-    except KeyError:
-        print(r4)
+    except KeyError as e:
+        print(e, r4, url)
         raise
     return r
 
