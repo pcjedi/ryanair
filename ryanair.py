@@ -1,4 +1,5 @@
 import requests
+import os
 from collections import defaultdict
 import json
 from functools import cache
@@ -76,9 +77,13 @@ def get_availabilities(origin, destination, session=requests):
 
 @cache
 @retry(stop=stop_after_attempt(7), retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
-def get_flights(origin, destination, availabilitie, session=requests, update=None):
+def get_flights(origin, destination, availabilitie, session=requests, update=None, sleep=None, mailto=None):
     url = f"https://www.ryanair.com/api/booking/v4/availability?ADT=1&CHD=0&DateIn=&DateOut={availabilitie.strftime('%Y-%m-%d')}&Destination={destination}&Disc=0&INF=0&Origin={origin}&TEEN=0&promoCode=&IncludeConnectingFlights=false&FlexDaysBeforeOut=0&FlexDaysOut=0&ToUs=AGREED"
+    if "mailto" in os.environ:
+        url += f"&mailto={os.getenv('mailto')}"
     r = set()
+    if sleep is not None:
+        time.sleep(sleep)
     gurl= session.get(url)
     r4 = gurl.json()
     try:
@@ -156,6 +161,8 @@ if __name__ == "__main__":
     aparser.add_argument('--blacklist', nargs='*', default=[])
     aparser.add_argument('--country_whitelist', nargs='*', default=[])
     aparser.add_argument('--whitelist', nargs='*', default=[])
+    aparser.add_argument('--max_routes', type=int)
+    aparser.add_argument('--sleep', type=float)
     args = aparser.parse_args()
 
     
@@ -189,13 +196,14 @@ if __name__ == "__main__":
         dest not in blacklist:
             for date in tqdm(get_availabilities(args.root_origin_code, dest, session=s), desc=dest, disable=args.no_tqdm):
                 if date < datetime.date.today() + datetime.timedelta(args.start_within_days):
-                    for flight in get_flights(args.root_origin_code, dest, date, session=s):
+                    for flight in get_flights(args.root_origin_code, dest, date, session=s, sleep=args.sleep):
                         if flight not in r:
                             r[flight] = {}
 
     mr = min_route(r)
     closed_routes = []
-    while mr is not None and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5.8:
+    while (mr is not None and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5) or \
+        len(closed_routes) >= args.max_routes:
         for dest in tqdm(get_destinations(mr[-1].destination, session=s), desc=mr[-1].destination, disable=args.no_tqdm):
             if dest==args.root_origin_code or \
             dest not in {f.destination for f in mr} and \
@@ -206,7 +214,7 @@ if __name__ == "__main__":
             (not args.unique_country or a[dest]["country"]["code"] not in {a[f.destination]["country"]["code"] for f in mr}):
                 for date in get_availabilities(mr[-1].destination, dest, session=s):
                     if 0 <= (date - mr[-1].end.date()).days <= 1 + args.max_stay_hours / 24 and (date - mr[0].start.date()).days < args.max_away_days:
-                        for flight in get_flights(mr[-1].destination, dest, date, session=s):
+                        for flight in get_flights(mr[-1].destination, dest, date, session=s, sleep=args.sleep):
                             if 3600 * args.min_stay_hours < (flight.start - mr[-1].end).total_seconds() < 3600 * args.max_stay_hours:
                                 if flight.destination==args.root_origin_code:
                                     closed_routes.append(mr + [flight])
@@ -221,7 +229,7 @@ if __name__ == "__main__":
     print(f"found {len(closed_routes)} closed routes")
     update = uuid.uuid4()
     [f.update(session=s, update=update) for r in closed_routes for f in r]
-    
+
     for route in sorted(
         filter(
             lambda r: not any(f.amount is None for f in r),

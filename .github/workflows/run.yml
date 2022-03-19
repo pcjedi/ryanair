@@ -8,8 +8,13 @@ on:
       min_stay_hours:
       max_stay_hours:
       max_away_days:
-      whitelist:
+      country_whitelist:
+      max_routes:
+      sleep:
 
+env:
+  mailto: ${{ secrets.MAILTO }}
+  PYTHONUNBUFFERED: true
 
 jobs:
   all:
@@ -29,45 +34,7 @@ jobs:
         --min_stay_hours ${{ github.event.inputs.min_stay_hours }}
         --max_stay_hours ${{ github.event.inputs.max_stay_hours }}
         --max_away_days ${{ github.event.inputs.max_away_days }}
+        --country_whitelist ${{ github.event.inputs.country_whitelist }}
+        --max_routes ${{ github.event.inputs.max_routes }}
+        --sleep ${{ github.event.inputs.sleep }}
         --no_tqdm
-
-  whitelist:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-    - name: Install dependencies
-      run: pip install -r requirements.txt
-    - run: > 
-        python ryanair.py
-        --root_origin_code ${{ github.event.inputs.root_origin_code }}
-        --start_within_days ${{ github.event.inputs.start_within_days }}
-        --min_stay_hours ${{ github.event.inputs.min_stay_hours }}
-        --max_stay_hours ${{ github.event.inputs.max_stay_hours }}
-        --max_away_days ${{ github.event.inputs.max_away_days }}
-        --whitelist ${{ github.event.inputs.whitelist }}
-        --no_tqdm
-
-  unique_country:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-    - name: Install dependencies
-      run: pip install -r requirements.txt
-    - run: > 
-        python ryanair.py
-        --root_origin_code ${{ github.event.inputs.root_origin_code }}
-        --start_within_days ${{ github.event.inputs.start_within_days }}
-        --min_stay_hours ${{ github.event.inputs.min_stay_hours }}
-        --max_stay_hours ${{ github.event.inputs.max_stay_hours }}
-        --max_away_days ${{ github.event.inputs.max_away_days }}
-        --unique_country
-        --no_tqdm
-
