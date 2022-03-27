@@ -118,16 +118,18 @@ def get_fare(origin, start, end, session=requests, sleep=None) -> Set[Flight]:
     }
     fares = set()
     for fare in session.get(url=url, params=params).json()['fares']:
-        fares.add(
-            Flight(
-                origin=fare["outbound"]["departureAirport"]["iataCode"],
-                destination=fare["outbound"]["arrivalAirport"]["iataCode"],
-                start=parser.parse(fare["outbound"]["departureDate"]),
-                end=parser.parse(fare["outbound"]["arrivalDate"]),
-                amount=fare["outbound"]["price"]["value"],
-                currency=fare["outbound"]["price"]["currencyCode"],
+        destination=fare["outbound"]["arrivalAirport"]["iataCode"]
+        if destination in get_destinations(origin, session=requests):
+            fares.add(
+                Flight(
+                    origin=fare["outbound"]["departureAirport"]["iataCode"],
+                    destination=destination,
+                    start=parser.parse(fare["outbound"]["departureDate"]),
+                    end=parser.parse(fare["outbound"]["arrivalDate"]),
+                    amount=fare["outbound"]["price"]["value"],
+                    currency=fare["outbound"]["price"]["currencyCode"],
+                )
             )
-        )
     return fares
 
 @cache
@@ -279,8 +281,6 @@ if __name__ == "__main__":
     aparser = argparse.ArgumentParser()
     aparser.add_argument('--root_origin_code')
     aparser.add_argument('--start_within_days', type=int)
-    aparser.add_argument('--min_stay_hours', type=int)
-    aparser.add_argument('--max_stay_hours', type=int)
     aparser.add_argument('--max_away_days', type=int)
     aparser.add_argument('--no_tqdm', action='store_true')
     aparser.add_argument('--early_quit', action='store_true')
