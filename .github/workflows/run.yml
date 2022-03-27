@@ -5,8 +5,6 @@ on:
     inputs:
       root_origin_code:
       start_within_days:
-      min_stay_hours:
-      max_stay_hours:
       max_away_days:
       country_whitelist:
       max_routes:
