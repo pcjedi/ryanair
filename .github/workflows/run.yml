@@ -6,6 +6,7 @@ on:
       root_origin_code:
       start_within_days:
       max_away_days:
+      min_stay_days:
       country_whitelist:
       max_routes:
       sleep:
@@ -27,6 +28,7 @@ jobs:
         --root_origin_code ${{ github.event.inputs.root_origin_code }}
         --start_within_days ${{ github.event.inputs.start_within_days }}
         --max_away_days ${{ github.event.inputs.max_away_days }}
+        --min_stay_days ${{ github.event.inputs.min_stay_days }}
         --country_whitelist ${{ github.event.inputs.country_whitelist }}
         --max_routes ${{ github.event.inputs.max_routes }}
         --sleep ${{ github.event.inputs.sleep }}

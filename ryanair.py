@@ -230,6 +230,7 @@ def routes_finder(
     root_origin_code,
     start_within_days,
     max_away_days,
+    min_stay_days,
     unique_country=False,
     country_whitelist=None,
     max_routes=None,
@@ -255,7 +256,7 @@ def routes_finder(
     while mr is not None and \
     (max_routes is None or len(closed_routes) < max_routes) and \
     (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5:
-        for days in tqdm(range(max_away_days - (mr[-1].end - mr[0].start).days), desc=f"{len(closed_routes)} routes found", disable=no_tqdm):
+        for days in range(min_stay_days, max_away_days - (mr[-1].end - mr[0].start).days):
             for flight in get_fare(
                 origin = mr[-1].destination,
                 start = mr[-1].end.date() + datetime.timedelta(days + 1),
@@ -282,6 +283,7 @@ if __name__ == "__main__":
     aparser.add_argument('--root_origin_code')
     aparser.add_argument('--start_within_days', type=int)
     aparser.add_argument('--max_away_days', type=int)
+    aparser.add_argument('--min_stay_days', type=int)
     aparser.add_argument('--no_tqdm', action='store_true')
     aparser.add_argument('--early_quit', action='store_true')
     aparser.add_argument('--unique_country', action='store_true')
@@ -320,6 +322,7 @@ if __name__ == "__main__":
         root_origin_code=args.root_origin_code,
         start_within_days=args.start_within_days,
         max_away_days=args.max_away_days,
+        min_stay_days=args.min_stay_days,
         unique_country=args.unique_country,
         country_whitelist=country_whitelist,
         max_routes=args.max_routes,
