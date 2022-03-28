@@ -119,7 +119,7 @@ def get_fare(origin, start, end, session=requests, sleep=None) -> Set[Flight]:
     fares = set()
     for fare in session.get(url=url, params=params).json()['fares']:
         destination=fare["outbound"]["arrivalAirport"]["iataCode"]
-        if destination in get_destinations(origin, session=requests):
+        if destination in get_destinations(origin, session=session):
             fares.add(
                 Flight(
                     origin=fare["outbound"]["departureAirport"]["iataCode"],
