@@ -331,7 +331,7 @@ if __name__ == "__main__":
         session=s,
     )
 
-    print(f"found {len(closed_routes)} closed routes")
+    print(f"found {len(closed_routes)} closed routes, with {len({f for r in closed_routes for f in r})} flights")
 
     for route in sorted(
         filter(
@@ -344,8 +344,10 @@ if __name__ == "__main__":
             sum(f.euro for f in route),
             len(route),
             sum(f.euro for f in route)/len(route),
-            route[0].start,
-            route[-1].end,
+            route[0].start.strftime('%Y-%m-%d/%H:%M'),
+            (route[-1].end - route[0].start).days,
+            (route[-1].end - route[0].start).seconds // 3600,
+            (route[-1].end - route[0].start).seconds // 60,
             route,
             [(a[f1.destination]["name"], str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
             [(f.amount, f.url) for f in route],
