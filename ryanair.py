@@ -1,6 +1,6 @@
 import requests
 import os
-from collections import defaultdict
+from collections import defaultdict, Counter
 import json
 from functools import cache
 from dateutil import parser
@@ -331,7 +331,9 @@ if __name__ == "__main__":
         session=s,
     )
 
-    print(f"found {len(closed_routes)} closed routes, with {len({f for r in closed_routes for f in r})} flights")
+    print(f"found {len(closed_routes)} closed routes, made of {len({f for r in closed_routes for f in r})} flights")
+    print(Counter([f.destination for r in closed_routes for f in r[:-1]]))
+    print(Counter([len(r) for r in closed_routes]))
 
     for route in sorted(
         filter(
