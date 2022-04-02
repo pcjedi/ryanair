@@ -332,7 +332,7 @@ if __name__ == "__main__":
     )
 
     print(f"found {len(closed_routes)} closed routes, made of {len({f for r in closed_routes for f in r})} flights")
-    print(Counter([f.destination for r in closed_routes for f in r[:-1]]))
+    print(Counter([a[f.destination]["name"] for r in closed_routes for f in r[:-1]]))
     print(Counter([len(r) for r in closed_routes]))
 
     for route in sorted(
