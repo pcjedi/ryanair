@@ -10,9 +10,7 @@ import time
 import uuid
 from tenacity import retry, retry_if_exception_type, wait_exponential, stop_after_attempt
 from typing import List, Set
-
-days = ["Monday", "Tuesday", "Wednesday",
-        "Thursday", "Friday", "Saturday", "Sunday"]
+from calendar import day_name
 
 
 class Flight:
@@ -119,6 +117,8 @@ def get_fare(origin, start, end, session=requests, sleep=None) -> Set[Flight]:
         "outboundDepartureDateFrom": start.strftime("%Y-%m-%d"),
         "outboundDepartureDateTo": end.strftime("%Y-%m-%d"),
     }
+    if "mailto" in os.environ:
+        params["mailto"] = os.getenv("mailto")
     fares = set()
     for fare in session.get(url=url, params=params).json()['fares']:
         destination=fare["outbound"]["arrivalAirport"]["iataCode"]
@@ -304,7 +304,6 @@ if __name__ == "__main__":
 
     s = requests.Session()
     a = get_airports(session=s)
-    print(f"found {len(a)} airports: {a.keys()}")
 
     countries = {aa["country"]["code"]:aa["country"]["name"] for aa in a.values()}
     whitelist = set(args.whitelist)
@@ -317,8 +316,6 @@ if __name__ == "__main__":
     assert country_whitelist - set(countries.keys()) == set(), f"country white list items must all be in {countries}"
     assert blacklist - set(a.keys()) == set(), f"blacklisted must be in {a.keys()}"
 
-    print(f"{ len(country_blacklist) } countries blacklisted, airports: { {aa['name'] for aa in a.values() if aa['country']['code'] in country_blacklist} }")
-    print({a[dest]["name"]:a[dest]["country"]["code"] not in country_blacklist for dest in a})
 
     closed_routes = routes_finder(
         airports=a,
@@ -334,6 +331,7 @@ if __name__ == "__main__":
         session=s,
     )
 
+    print(get_fare.cache_info())
     print(f"found {len(closed_routes)} closed routes, made of {len({f for r in closed_routes for f in r})} flights")
     print(Counter([a[f.destination]["name"] for r in closed_routes for f in r[:-1]]))
     print(Counter([a[f.destination]["country"]["name"] for r in closed_routes for f in r[:-1]]))
@@ -351,11 +349,11 @@ if __name__ == "__main__":
             len(route),
             sum(f.euro for f in route)/len(route),
             route[0].start.strftime('%Y-%m-%d/%H:%M'),
-            days[route[0].start.weekday()],
-            days[route[-1].end.weekday()],
+            day_name[route[0].start.weekday()],
+            day_name[route[-1].end.weekday()],
             (route[-1].end - route[0].start).days,
             (route[-1].end - route[0].start).seconds // 3600,
-            (route[-1].end - route[0].start).seconds // 60,
+            (route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600),
             route,
             [(a[f1.destination]["name"], str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
             [(f.amount, f.url) for f in route],
