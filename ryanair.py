@@ -334,7 +334,7 @@ if __name__ == "__main__":
     print(get_fare.cache_info())
     print(f"found {len(closed_routes)} closed routes, made of {len({f for r in closed_routes for f in r})} flights")
     print(Counter([a[f.destination]["name"] for r in closed_routes for f in r[:-1]]))
-    print(Counter([a[f.destination]["country"]["name"] for r in closed_routes for f in r[:-1]]))
+    print(Counter([f for r in [{a[f.destination]["country"]["name"] for f in r[:-1]} for r in closed_routes] for f in r]))
     print(Counter([len(r) for r in closed_routes]))
 
     for route in sorted(
