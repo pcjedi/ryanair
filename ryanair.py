@@ -11,6 +11,9 @@ import uuid
 from tenacity import retry, retry_if_exception_type, wait_exponential, stop_after_attempt
 from typing import List, Set
 
+days = ["Monday", "Tuesday", "Wednesday",
+        "Thursday", "Friday", "Saturday", "Sunday"]
+
 
 class Flight:
     def __init__(self, start, end, origin, destination, amount, currency):
@@ -333,6 +336,7 @@ if __name__ == "__main__":
 
     print(f"found {len(closed_routes)} closed routes, made of {len({f for r in closed_routes for f in r})} flights")
     print(Counter([a[f.destination]["name"] for r in closed_routes for f in r[:-1]]))
+    print(Counter([a[f.destination]["country"]["name"] for r in closed_routes for f in r[:-1]]))
     print(Counter([len(r) for r in closed_routes]))
 
     for route in sorted(
@@ -347,6 +351,8 @@ if __name__ == "__main__":
             len(route),
             sum(f.euro for f in route)/len(route),
             route[0].start.strftime('%Y-%m-%d/%H:%M'),
+            days[route[0].start.weekday()],
+            days[route[-1].end.weekday()],
             (route[-1].end - route[0].start).days,
             (route[-1].end - route[0].start).seconds // 3600,
             (route[-1].end - route[0].start).seconds // 60,
