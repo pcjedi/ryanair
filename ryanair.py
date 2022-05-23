@@ -253,7 +253,7 @@ def routes_finder(
         if len(country_whitelist)==0 or airports[f.destination]["country"]["code"] in country_whitelist:
             r[f] = {}
 
-    closed_routes = []
+    closed_routes = dict()
     mr = min_route(r)
 
     while mr is not None and \
@@ -268,7 +268,10 @@ def routes_finder(
                 sleep=sleep,
             ):
                 if flight.destination == root_origin_code:
-                    closed_routes.append(mr + [flight])
+                    old_route = closed_routes[tuple(sorted(f.destination for f in mr))]
+                    new_route = mr + [flight]
+                    if sum(f.euro for f in new_route) < sum(f.euro for f in old_route):
+                        closed_routes[tuple(sorted(f.destination for f in mr))] = mr + [flight]
                 elif (len(country_whitelist)==0 or airports[flight.destination]["country"]["code"] in country_whitelist) and \
                 (not unique_country or airports[flight.destination]["country"]["code"] not in {airports[flight.destination]["country"]["code"] for f in mr}) and \
                 flight.destination not in {f.destination for f in mr}:
@@ -277,7 +280,7 @@ def routes_finder(
             setter(r, mr)
         mr = min_route(r)
 
-    return closed_routes
+    return list(closed_routes.values())
 
 
 if __name__ == "__main__":
