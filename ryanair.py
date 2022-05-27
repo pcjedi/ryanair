@@ -182,6 +182,7 @@ def routes_finder_alt(
     min_stay_hours,
     max_stay_hours,
     unique_country=False,
+    blacklist=set(),
     max_routes=None,
     sleep=0,
     no_tqdm=False,
@@ -236,6 +237,7 @@ def routes_finder(
     min_stay_days,
     unique_country=False,
     country_whitelist=None,
+    blacklist=set(),
     max_routes=None,
     sleep=None,
     no_tqdm=False,
@@ -274,7 +276,8 @@ def routes_finder(
                         closed_routes[tuple(sorted(f.destination for f in mr))] = mr + [flight]
                 elif (len(country_whitelist)==0 or airports[flight.destination]["country"]["code"] in country_whitelist) and \
                 (not unique_country or airports[flight.destination]["country"]["code"] not in {airports[flight.destination]["country"]["code"] for f in mr}) and \
-                flight.destination not in {f.destination for f in mr}:
+                flight.destination not in {f.destination for f in mr} and \
+                flight.destination not in blacklist:
                     getter(r, mr)[flight] = {}
         if len(getter(r, mr))==0:
             setter(r, mr)
@@ -328,6 +331,7 @@ if __name__ == "__main__":
         min_stay_days=args.min_stay_days,
         unique_country=args.unique_country,
         country_whitelist=country_whitelist,
+        blacklist=blacklist,
         max_routes=args.max_routes,
         sleep=args.sleep,
         no_tqdm=True,
