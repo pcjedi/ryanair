@@ -8,6 +8,7 @@ on:
       max_away_days:
       min_stay_days:
       country_whitelist:
+      blacklist:
       max_routes:
       sleep:
 
@@ -30,6 +31,7 @@ jobs:
         --max_away_days ${{ github.event.inputs.max_away_days }}
         --min_stay_days ${{ github.event.inputs.min_stay_days }}
         --country_whitelist ${{ github.event.inputs.country_whitelist }}
+        --blacklist ${{ github.event.inputs.blacklist }}
         --max_routes ${{ github.event.inputs.max_routes }}
         --sleep ${{ github.event.inputs.sleep }}
         --no_tqdm
