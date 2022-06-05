@@ -246,16 +246,15 @@ def routes_finder(
 ):
     start_time = datetime.datetime.now()
     r = dict()
-    for origin in cityairports[city(root_origin_code)]:
-        for f in get_fare(
-            origin=origin,
-            start=datetime.date.today(),
-            end=datetime.date.today() + datetime.timedelta(start_within_days),
-            session=session,
-            sleep=sleep,
-        ):
-            if len(country_whitelist)==0 or airports[f.destination]["country"]["code"] in country_whitelist:
-                r[f] = {}
+    for f in get_fare(
+        origin=root_origin_code,
+        start=datetime.date.today(),
+        end=datetime.date.today() + datetime.timedelta(start_within_days),
+        session=session,
+        sleep=sleep,
+    ):
+        if len(country_whitelist)==0 or airports[f.destination]["country"]["code"] in country_whitelist:
+            r[f] = {}
 
     closed_routes = dict()
     mr = min_route(r)
@@ -323,7 +322,7 @@ if __name__ == "__main__":
     assert country_whitelist - set(countries.keys()) == set(), f"country white list items must all be in {countries}"
     assert blacklist - set(a.keys()) == set(), f"blacklisted must be in {a.keys()}"
 
-    city = lambda airport: a[airport].get("macCity", a[airport]["city"])["code"]
+    city = lambda airport: a[airport].get("macCity", a[airport]["city"])["code"].lower()
     cityairports = defaultdict(set)
     [cityairports[city(code)].add(code) for code in a]
 
@@ -367,6 +366,6 @@ if __name__ == "__main__":
             (route[-1].end - route[0].start).seconds // 3600,
             (route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600),
             route,
-            [(a[f1.destination]["name"], str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
+            [(city(a[f1.destination]), str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
             [(f.amount, f.url) for f in route],
         )
