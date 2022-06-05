@@ -359,9 +359,9 @@ if __name__ == "__main__":
         key=lambda r:sum(f.euro for f in r)/(len(r)-1),
     ):
         print(
-            sum(f.euro for f in route),
-            len(route),
-            sum(f.euro for f in route)/len(route),
+            round(sum(f.euro for f in route)/(len(route)-1), 2),
+            len(route)-1,
+            round(sum(f.euro for f in route), 2),
             route[0].start.strftime('%Y-%m-%d/%H:%M'),
             day_name[route[0].start.weekday()],
             day_name[route[-1].end.weekday()],
@@ -369,6 +369,6 @@ if __name__ == "__main__":
             (route[-1].end - route[0].start).seconds // 3600,
             (route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600),
             route,
-            [(city(f1.destination), str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
+            [(city(f1.destination), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
             [(f.amount, f.url) for f in route],
         )
