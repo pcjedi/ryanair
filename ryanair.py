@@ -246,7 +246,7 @@ def routes_finder(
 ):
     start_time = datetime.datetime.now()
     r = dict()
-    for origin in cityairports[root_origin_code]:
+    for origin in cityairports[city(root_origin_code)]:
         for f in get_fare(
             origin=origin,
             start=datetime.date.today(),
@@ -264,7 +264,7 @@ def routes_finder(
     (max_routes is None or len(closed_routes) < max_routes) and \
     (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5:
         for days in range(min_stay_days, max_away_days - (mr[-1].end - mr[0].start).days):
-            for origin in cityairports[mr[-1].destination]:
+            for origin in cityairports[city(mr[-1].destination)]:
                 for flight in get_fare(
                     origin = origin,
                     start = mr[-1].end.date() + datetime.timedelta(days + 1),
