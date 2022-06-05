@@ -107,6 +107,10 @@ def get_flights(origin, destination, availabilitie, session=requests, update=Non
     return r
 
 
+def get_fare_origins(origins, **kwargs) -> Set[Flight]:
+    return {f for origin in origins for f in get_fare(origin=origin, **kwargs)}
+
+
 @cache
 def get_fare(origin, start, end, session=requests, sleep=None) -> Set[Flight]:
     if sleep is not None:
@@ -263,24 +267,23 @@ def routes_finder(
     (max_routes is None or len(closed_routes) < max_routes) and \
     (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5:
         for days in range(min_stay_days, max_away_days - (mr[-1].end - mr[0].start).days):
-            for origin in cityairports[city(mr[-1].destination)]:
-                for flight in get_fare(
-                    origin = origin,
-                    start = mr[-1].end.date() + datetime.timedelta(days + 1),
-                    end = mr[-1].end.date() + datetime.timedelta(days + 1),
-                    session=session,
-                    sleep=sleep,
-                ):
-                    if city(flight.destination) == city(root_origin_code):
-                        old_route = closed_routes.get(tuple(sorted(city(f.destination) for f in mr)), None)
-                        new_route = mr + [flight]
-                        if old_route is None or sum(f.euro for f in new_route) < sum(f.euro for f in old_route):
-                            closed_routes[tuple(sorted(city(f.destination) for f in mr))] = mr + [flight]
-                    elif (len(country_whitelist)==0 or airports[flight.destination]["country"]["code"] in country_whitelist) and \
-                    (not unique_country or airports[flight.destination]["country"]["code"] not in {airports[flight.destination]["country"]["code"] for f in mr}) and \
-                    city(flight.destination) not in {city(f.destination) for f in mr} and \
-                    flight.destination not in blacklist:
-                        getter(r, mr)[flight] = {}
+            for flight in get_fare_origins(
+                origins = cityairports[city(mr[-1].destination)],
+                start = mr[-1].end.date() + datetime.timedelta(days + 1),
+                end = mr[-1].end.date() + datetime.timedelta(days + 1),
+                session=session,
+                sleep=sleep,
+            ):
+                if city(flight.destination) == city(root_origin_code):
+                    old_route = closed_routes.get(tuple(sorted(city(f.destination) for f in mr)), None)
+                    new_route = mr + [flight]
+                    if old_route is None or sum(f.euro for f in new_route) < sum(f.euro for f in old_route):
+                        closed_routes[tuple(sorted(city(f.destination) for f in mr))] = mr + [flight]
+                elif (len(country_whitelist)==0 or airports[flight.destination]["country"]["code"] in country_whitelist) and \
+                (not unique_country or airports[flight.destination]["country"]["code"] not in {airports[flight.destination]["country"]["code"] for f in mr}) and \
+                city(flight.destination) not in {city(f.destination) for f in mr} and \
+                flight.destination not in blacklist:
+                    getter(r, mr)[flight] = {}
         if len(getter(r, mr))==0:
             setter(r, mr)
         mr = min_route(r)
