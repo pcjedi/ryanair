@@ -107,6 +107,10 @@ def get_flights(origin, destination, availabilitie, session=requests, update=Non
     return r
 
 
+def get_fare_origins(origins, **kwargs) -> Set[Flight]:
+    return {f for origin in origins for f in get_fare(origin=origin, **kwargs)}
+
+
 @cache
 def get_fare(origin, start, end, session=requests, sleep=None) -> Set[Flight]:
     if sleep is not None:
@@ -235,6 +239,7 @@ def routes_finder(
     start_within_days,
     max_away_days,
     min_stay_days,
+    cityairports,
     unique_country=False,
     country_whitelist=None,
     blacklist=set(),
@@ -262,21 +267,21 @@ def routes_finder(
     (max_routes is None or len(closed_routes) < max_routes) and \
     (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5:
         for days in range(min_stay_days, max_away_days - (mr[-1].end - mr[0].start).days):
-            for flight in get_fare(
-                origin = mr[-1].destination,
+            for flight in get_fare_origins(
+                origins = cityairports[city(mr[-1].destination)],
                 start = mr[-1].end.date() + datetime.timedelta(days + 1),
                 end = mr[-1].end.date() + datetime.timedelta(days + 1),
                 session=session,
                 sleep=sleep,
             ):
-                if flight.destination == root_origin_code:
-                    old_route = closed_routes.get(tuple(sorted(f.destination for f in mr)), None)
+                if city(flight.destination) == city(root_origin_code):
+                    old_route = closed_routes.get(tuple(sorted(city(f.destination) for f in mr)), None)
                     new_route = mr + [flight]
                     if old_route is None or sum(f.euro for f in new_route) < sum(f.euro for f in old_route):
-                        closed_routes[tuple(sorted(f.destination for f in mr))] = mr + [flight]
+                        closed_routes[tuple(sorted(city(f.destination) for f in mr))] = mr + [flight]
                 elif (len(country_whitelist)==0 or airports[flight.destination]["country"]["code"] in country_whitelist) and \
                 (not unique_country or airports[flight.destination]["country"]["code"] not in {airports[flight.destination]["country"]["code"] for f in mr}) and \
-                flight.destination not in {f.destination for f in mr} and \
+                city(flight.destination) not in {city(f.destination) for f in mr} and \
                 flight.destination not in blacklist:
                     getter(r, mr)[flight] = {}
         if len(getter(r, mr))==0:
@@ -304,9 +309,7 @@ if __name__ == "__main__":
     aparser.add_argument('--sleep', type=float)
     args = aparser.parse_args()
 
-    
     start_time = datetime.datetime.now()
-    
 
     s = requests.Session()
     a = get_airports(session=s)
@@ -322,6 +325,9 @@ if __name__ == "__main__":
     assert country_whitelist - set(countries.keys()) == set(), f"country white list items must all be in {countries}"
     assert blacklist - set(a.keys()) == set(), f"blacklisted must be in {a.keys()}"
 
+    city = lambda airport: a[airport].get("macCity", a[airport]["city"])["code"].capitalize()
+    cityairports = defaultdict(set)
+    [cityairports[city(code)].add(code) for code in a]
 
     closed_routes = routes_finder(
         airports=a,
@@ -329,6 +335,7 @@ if __name__ == "__main__":
         start_within_days=args.start_within_days,
         max_away_days=args.max_away_days,
         min_stay_days=args.min_stay_days,
+        cityairports=cityairports,
         unique_country=args.unique_country,
         country_whitelist=country_whitelist,
         blacklist=blacklist,
@@ -362,6 +369,6 @@ if __name__ == "__main__":
             (route[-1].end - route[0].start).seconds // 3600,
             (route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600),
             route,
-            [(a[f1.destination]["name"], str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
+            [(city(f1.destination), str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
             [(f.amount, f.url) for f in route],
         )
