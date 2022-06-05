@@ -325,7 +325,7 @@ if __name__ == "__main__":
     assert country_whitelist - set(countries.keys()) == set(), f"country white list items must all be in {countries}"
     assert blacklist - set(a.keys()) == set(), f"blacklisted must be in {a.keys()}"
 
-    city = lambda airport: a[airport].get("macCity", a[airport]["city"])["code"].lower()
+    city = lambda airport: a[airport].get("macCity", a[airport]["city"])["code"].capitalize()
     cityairports = defaultdict(set)
     [cityairports[city(code)].add(code) for code in a]
 
@@ -369,6 +369,6 @@ if __name__ == "__main__":
             (route[-1].end - route[0].start).seconds // 3600,
             (route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600),
             route,
-            [(city(a[f1.destination]), str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
+            [(city(f1.destination), str(f1.end-f1.start), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
             [(f.amount, f.url) for f in route],
         )
