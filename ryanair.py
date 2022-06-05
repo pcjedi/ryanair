@@ -235,6 +235,7 @@ def routes_finder(
     start_within_days,
     max_away_days,
     min_stay_days,
+    cityairports,
     unique_country=False,
     country_whitelist=None,
     blacklist=set(),
@@ -245,15 +246,16 @@ def routes_finder(
 ):
     start_time = datetime.datetime.now()
     r = dict()
-    for f in get_fare(
-        origin=root_origin_code,
-        start=datetime.date.today(),
-        end=datetime.date.today() + datetime.timedelta(start_within_days),
-        session=session,
-        sleep=sleep,
-    ):
-        if len(country_whitelist)==0 or airports[f.destination]["country"]["code"] in country_whitelist:
-            r[f] = {}
+    for origin in cityairports[root_origin_code]:
+        for f in get_fare(
+            origin=origin,
+            start=datetime.date.today(),
+            end=datetime.date.today() + datetime.timedelta(start_within_days),
+            session=session,
+            sleep=sleep,
+        ):
+            if len(country_whitelist)==0 or airports[f.destination]["country"]["code"] in country_whitelist:
+                r[f] = {}
 
     closed_routes = dict()
     mr = min_route(r)
@@ -262,23 +264,24 @@ def routes_finder(
     (max_routes is None or len(closed_routes) < max_routes) and \
     (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5:
         for days in range(min_stay_days, max_away_days - (mr[-1].end - mr[0].start).days):
-            for flight in get_fare(
-                origin = mr[-1].destination,
-                start = mr[-1].end.date() + datetime.timedelta(days + 1),
-                end = mr[-1].end.date() + datetime.timedelta(days + 1),
-                session=session,
-                sleep=sleep,
-            ):
-                if flight.destination == root_origin_code:
-                    old_route = closed_routes.get(tuple(sorted(f.destination for f in mr)), None)
-                    new_route = mr + [flight]
-                    if old_route is None or sum(f.euro for f in new_route) < sum(f.euro for f in old_route):
-                        closed_routes[tuple(sorted(f.destination for f in mr))] = mr + [flight]
-                elif (len(country_whitelist)==0 or airports[flight.destination]["country"]["code"] in country_whitelist) and \
-                (not unique_country or airports[flight.destination]["country"]["code"] not in {airports[flight.destination]["country"]["code"] for f in mr}) and \
-                flight.destination not in {f.destination for f in mr} and \
-                flight.destination not in blacklist:
-                    getter(r, mr)[flight] = {}
+            for origin in cityairports[mr[-1].destination]:
+                for flight in get_fare(
+                    origin = origin,
+                    start = mr[-1].end.date() + datetime.timedelta(days + 1),
+                    end = mr[-1].end.date() + datetime.timedelta(days + 1),
+                    session=session,
+                    sleep=sleep,
+                ):
+                    if city(flight.destination) == city(root_origin_code):
+                        old_route = closed_routes.get(tuple(sorted(city(f.destination) for f in mr)), None)
+                        new_route = mr + [flight]
+                        if old_route is None or sum(f.euro for f in new_route) < sum(f.euro for f in old_route):
+                            closed_routes[tuple(sorted(city(f.destination) for f in mr))] = mr + [flight]
+                    elif (len(country_whitelist)==0 or airports[flight.destination]["country"]["code"] in country_whitelist) and \
+                    (not unique_country or airports[flight.destination]["country"]["code"] not in {airports[flight.destination]["country"]["code"] for f in mr}) and \
+                    city(flight.destination) not in {city(f.destination) for f in mr} and \
+                    flight.destination not in blacklist:
+                        getter(r, mr)[flight] = {}
         if len(getter(r, mr))==0:
             setter(r, mr)
         mr = min_route(r)
@@ -304,9 +307,7 @@ if __name__ == "__main__":
     aparser.add_argument('--sleep', type=float)
     args = aparser.parse_args()
 
-    
     start_time = datetime.datetime.now()
-    
 
     s = requests.Session()
     a = get_airports(session=s)
@@ -322,6 +323,9 @@ if __name__ == "__main__":
     assert country_whitelist - set(countries.keys()) == set(), f"country white list items must all be in {countries}"
     assert blacklist - set(a.keys()) == set(), f"blacklisted must be in {a.keys()}"
 
+    city = lambda airport: a[airport].get("macCity", a[airport]["city"])["code"]
+    cityairports = defaultdict(set)
+    [cityairports[city(code)].add(code) for code in a]
 
     closed_routes = routes_finder(
         airports=a,
@@ -329,6 +333,7 @@ if __name__ == "__main__":
         start_within_days=args.start_within_days,
         max_away_days=args.max_away_days,
         min_stay_days=args.min_stay_days,
+        cityairports=cityairports,
         unique_country=args.unique_country,
         country_whitelist=country_whitelist,
         blacklist=blacklist,
