@@ -236,7 +236,8 @@ def routes_finder_alt(
 def routes_finder(
     airports,
     root_origin_code,
-    start_within_days,
+    start_not_before,
+    start_until,
     max_away_days,
     min_stay_days,
     cityairports,
@@ -252,8 +253,8 @@ def routes_finder(
     r = dict()
     for f in get_fare(
         origin=root_origin_code,
-        start=datetime.date.today(),
-        end=datetime.date.today() + datetime.timedelta(start_within_days),
+        start=start_not_before,
+        end=start_until,
         session=session,
         sleep=sleep,
     ):
@@ -295,7 +296,8 @@ if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser()
     aparser.add_argument('--root_origin_code')
-    aparser.add_argument('--start_within_days', type=int)
+    aparser.add_argument('--start_not_before', type=parser.parse)
+    aparser.add_argument('--start_until', type=parser.parse)
     aparser.add_argument('--max_away_days', type=int)
     aparser.add_argument('--min_stay_days', type=int)
     aparser.add_argument('--no_tqdm', action='store_true')
@@ -332,7 +334,8 @@ if __name__ == "__main__":
     closed_routes = routes_finder(
         airports=a,
         root_origin_code=args.root_origin_code,
-        start_within_days=args.start_within_days,
+        start_not_before=args.start_not_before,
+        start_until=args.start_until,
         max_away_days=args.max_away_days,
         min_stay_days=args.min_stay_days,
         cityairports=cityairports,
