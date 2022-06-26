@@ -292,12 +292,19 @@ def routes_finder(
     return list(closed_routes.values())
 
 
+def flexdate(s:str) -> datetime.date:
+    try:
+        return datetime.datetime.now().date() + datetime.timedelta(days=int(s))
+    except ValueError:
+        return parser.parse(s).date()
+
+
 if __name__ == "__main__":
     import argparse
     aparser = argparse.ArgumentParser()
     aparser.add_argument('--root_origin_code')
-    aparser.add_argument('--start_not_before', type=parser.parse)
-    aparser.add_argument('--start_until', type=parser.parse)
+    aparser.add_argument('--start_not_before', type=flexdate)
+    aparser.add_argument('--start_until', type=flexdate)
     aparser.add_argument('--max_away_days', type=int)
     aparser.add_argument('--min_stay_days', type=int)
     aparser.add_argument('--no_tqdm', action='store_true')
