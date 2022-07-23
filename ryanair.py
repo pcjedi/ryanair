@@ -21,10 +21,10 @@ class Flight:
         self.destination = destination
         self.amount = amount
         self.currency = currency
-    
+
     def __repr__(self):
         return f"{self.origin}-{self.destination}:{self.start.strftime('%Y-%m-%d/%H:%M')}{self.currency}{self.amount}"
-        
+
     @property
     def euro(self):
         return self.amount / get_rates()[self.currency]
@@ -32,7 +32,7 @@ class Flight:
     @property
     def duration(self):
         return self.end - self.start
-    
+
     @property
     def url(self):
         return f"https://www.ryanair.com/de/de/trip/flights/select?adults=1&teens=0&children=0&infants=0&dateOut={self.start.strftime('%Y-%m-%d')}&dateIn=&isConnectedFlight=false&isReturn=false&discount=0&promoCode=&originIata={self.origin}&destinationIata={self.destination}&tpAdults=1&tpTeens=0&tpChildren=0&tpInfants=0&tpStartDate={self.start.strftime('%Y-%m-%d')}&tpEndDate=&tpDiscount=0&tpPromoCode=&tpOriginIata={self.origin}&tpDestinationIata={self.destination}"
@@ -46,38 +46,72 @@ class Flight:
             availabilitie=self.start,
             session=session,
             update=update,
-            ):
+        ):
             if f.start == self.start:
                 amount_update = f.amount
         self.amount = amount_update
 
 
 @cache
-@retry(stop=stop_after_attempt(7), retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
+@retry(
+    stop=stop_after_attempt(7),
+    retry=(
+        retry_if_exception_type(json.decoder.JSONDecodeError)
+        | retry_if_exception_type(KeyError)
+        | retry_if_exception_type(requests.exceptions.ConnectionError)
+    ),
+    wait=wait_exponential(multiplier=1, min=0, max=70),
+)
 def get_airports(session=requests):
     url = "https://www.ryanair.com/api/locate/v1/autocomplete/airports"
-    airports = {airport["code"]:airport for airport in json.load(open("airports.json", "r"))}
-    airports |= {airport["code"]:airport for airport in session.get(url).json()}
+    airports = {airport["code"]: airport for airport in json.load(open("airports.json", "r"))}
+    airports |= {airport["code"]: airport for airport in session.get(url).json()}
     return airports
 
 
 @cache
-@retry(stop=stop_after_attempt(7), retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
+@retry(
+    stop=stop_after_attempt(7),
+    retry=(
+        retry_if_exception_type(json.decoder.JSONDecodeError)
+        | retry_if_exception_type(KeyError)
+        | retry_if_exception_type(requests.exceptions.ConnectionError)
+    ),
+    wait=wait_exponential(multiplier=1, min=0, max=70),
+)
 def get_destinations(origin, session=requests):
-    g = session.get(f"https://www.ryanair.com/api/locate/v1/autocomplete/routes?arrivalPhrase=&departurePhrase={origin}&market=de-de")
+    g = session.get(
+        f"https://www.ryanair.com/api/locate/v1/autocomplete/routes?arrivalPhrase=&departurePhrase={origin}&market=de-de"
+    )
     r2 = g.json()
     return {arrivalAirport["arrivalAirport"]["code"] for arrivalAirport in r2 if arrivalAirport["connectingAirport"] is None}
 
 
 @cache
-@retry(stop=stop_after_attempt(7), retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
+@retry(
+    stop=stop_after_attempt(7),
+    retry=(
+        retry_if_exception_type(json.decoder.JSONDecodeError)
+        | retry_if_exception_type(KeyError)
+        | retry_if_exception_type(requests.exceptions.ConnectionError)
+    ),
+    wait=wait_exponential(multiplier=1, min=0, max=70),
+)
 def get_availabilities(origin, destination, session=requests):
     g = session.get(f"https://www.ryanair.com/api/farfnd/3/oneWayFares/{origin}/{destination}/availabilities")
     return [parser.parse(d).date() for d in g.json()]
 
 
 @cache
-@retry(stop=stop_after_attempt(7), retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
+@retry(
+    stop=stop_after_attempt(7),
+    retry=(
+        retry_if_exception_type(json.decoder.JSONDecodeError)
+        | retry_if_exception_type(KeyError)
+        | retry_if_exception_type(requests.exceptions.ConnectionError)
+    ),
+    wait=wait_exponential(multiplier=1, min=0, max=70),
+)
 def get_flights(origin, destination, availabilitie, session=requests, update=None, sleep=None, mailto=None):
     url = f"https://www.ryanair.com/api/booking/v4/availability?ADT=1&CHD=0&DateIn=&DateOut={availabilitie.strftime('%Y-%m-%d')}&Destination={destination}&Disc=0&INF=0&Origin={origin}&TEEN=0&promoCode=&IncludeConnectingFlights=false&FlexDaysBeforeOut=0&FlexDaysOut=0&ToUs=AGREED"
     if "mailto" in os.environ:
@@ -85,7 +119,7 @@ def get_flights(origin, destination, availabilitie, session=requests, update=Non
     r = set()
     if sleep is not None:
         time.sleep(sleep)
-    gurl= session.get(url)
+    gurl = session.get(url)
     r4 = gurl.json()
     try:
         for date in r4["trips"][0]["dates"]:
@@ -93,12 +127,12 @@ def get_flights(origin, destination, availabilitie, session=requests, update=Non
                 if flight["faresLeft"] > 0:
                     r.add(
                         Flight(
-                            start = parser.parse(flight["timeUTC"][0]),
-                            end = parser.parse(flight["timeUTC"][1]),
-                            origin = origin,
-                            destination = destination,
-                            amount = float(flight["regularFare"]["fares"][0]["amount"]),
-                            currency = r4["currency"],
+                            start=parser.parse(flight["timeUTC"][0]),
+                            end=parser.parse(flight["timeUTC"][1]),
+                            origin=origin,
+                            destination=destination,
+                            amount=float(flight["regularFare"]["fares"][0]["amount"]),
+                            currency=r4["currency"],
                         )
                     )
     except KeyError as e:
@@ -124,8 +158,8 @@ def get_fare(origin, start, end, session=requests, sleep=None) -> Set[Flight]:
     if "mailto" in os.environ:
         params["mailto"] = os.getenv("mailto")
     fares = set()
-    for fare in session.get(url=url, params=params).json()['fares']:
-        destination=fare["outbound"]["arrivalAirport"]["iataCode"]
+    for fare in session.get(url=url, params=params).json()["fares"]:
+        destination = fare["outbound"]["arrivalAirport"]["iataCode"]
         if destination in get_destinations(origin, session=session):
             fares.add(
                 Flight(
@@ -139,8 +173,17 @@ def get_fare(origin, start, end, session=requests, sleep=None) -> Set[Flight]:
             )
     return fares
 
+
 @cache
-@retry(stop=stop_after_attempt(7), retry=(retry_if_exception_type(json.decoder.JSONDecodeError) | retry_if_exception_type(KeyError) | retry_if_exception_type(requests.exceptions.ConnectionError) ), wait=wait_exponential(multiplier=1, min=0, max=70))
+@retry(
+    stop=stop_after_attempt(7),
+    retry=(
+        retry_if_exception_type(json.decoder.JSONDecodeError)
+        | retry_if_exception_type(KeyError)
+        | retry_if_exception_type(requests.exceptions.ConnectionError)
+    ),
+    wait=wait_exponential(multiplier=1, min=0, max=70),
+)
 def get_rates(base="EUR", session=requests):
     g = session.get(f"https://api.exchangerate.host/latest?base={base}")
     return g.json()["rates"]
@@ -149,31 +192,28 @@ def get_rates(base="EUR", session=requests):
 def min_route(r) -> List[Flight]:
     if r is None:
         return
-    if len(r)==0:
+    if len(r) == 0:
         return []
     routes = []
-    for k,v in r.items():
+    for k, v in r.items():
         v2 = min_route(v)
         if v2 is None:
             r[k] = None
         else:
             routes.append([k] + v2)
-    if len(routes)==0:
+    if len(routes) == 0:
         return
-    return sorted(
-        routes,
-        key=lambda route:sum(f.euro for f in route)/len(route)
-    )[0]
+    return sorted(routes, key=lambda route: sum(f.euro for f in route) / len(route))[0]
 
 
 def getter(r, l):
-    if len(l)==1:
+    if len(l) == 1:
         return r[l[0]]
     return getter(r[l[0]], l[1:])
 
 
 def setter(r, l, value=None):
-    if len(l)==1:
+    if len(l) == 1:
         r[l[0]] = value
     else:
         setter(r[l[0]], l[1:], value)
@@ -190,14 +230,16 @@ def routes_finder_alt(
     max_routes=None,
     sleep=0,
     no_tqdm=False,
-    session=requests
+    session=requests,
 ):
     r = dict()
     for dest in get_destinations(root_origin_code, session=session):
-        if (len(whitelist)==0 or dest in whitelist) and \
-        (len(country_whitelist)==0 or a[dest]["country"]["code"] in country_whitelist) and \
-        a[dest]["country"]["code"] not in country_blacklist and \
-        dest not in blacklist:
+        if (
+            (len(whitelist) == 0 or dest in whitelist)
+            and (len(country_whitelist) == 0 or a[dest]["country"]["code"] in country_whitelist)
+            and a[dest]["country"]["code"] not in country_blacklist
+            and dest not in blacklist
+        ):
             for date in tqdm(get_availabilities(root_origin_code, dest, session=session), desc=dest, disable=no_tqdm):
                 if date < datetime.date.today() + datetime.timedelta(start_within_days):
                     for flight in get_flights(root_origin_code, dest, date, session=session, sleep=sleep):
@@ -206,27 +248,34 @@ def routes_finder_alt(
 
     mr = min_route(r)
     closed_routes = []
-    while mr is not None and \
-        (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5 and \
-        (max_routes is not None or len(closed_routes) < max_routes):
+    while (
+        mr is not None
+        and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5
+        and (max_routes is not None or len(closed_routes) < max_routes)
+    ):
         for dest in tqdm(get_destinations(mr[-1].destination, session=session), desc=mr[-1].destination, disable=no_tqdm):
-            if dest==root_origin_code or \
-            dest not in {f.destination for f in mr} and \
-            (len(whitelist)==0 or dest in whitelist) and \
-            (len(country_whitelist)==0 or a[dest]["country"]["code"] in country_whitelist) and \
-            dest not in blacklist and \
-            a[dest]["country"]["code"] not in country_blacklist and \
-            (not unique_country or a[dest]["country"]["code"] not in {a[f.destination]["country"]["code"] for f in mr}):
+            if (
+                dest == root_origin_code
+                or dest not in {f.destination for f in mr}
+                and (len(whitelist) == 0 or dest in whitelist)
+                and (len(country_whitelist) == 0 or a[dest]["country"]["code"] in country_whitelist)
+                and dest not in blacklist
+                and a[dest]["country"]["code"] not in country_blacklist
+                and (not unique_country or a[dest]["country"]["code"] not in {a[f.destination]["country"]["code"] for f in mr})
+            ):
                 for date in get_availabilities(mr[-1].destination, dest, session=session):
-                    if 0 <= (date - mr[-1].end.date()).days <= 1 + max_stay_hours / 24 and (date - mr[0].start.date()).days < max_away_days:
+                    if (
+                        0 <= (date - mr[-1].end.date()).days <= 1 + max_stay_hours / 24
+                        and (date - mr[0].start.date()).days < max_away_days
+                    ):
                         for flight in get_flights(mr[-1].destination, dest, date, session=session, sleep=sleep):
                             if 3600 * min_stay_hours < (flight.start - mr[-1].end).total_seconds() < 3600 * max_stay_hours:
-                                if flight.destination==root_origin_code:
+                                if flight.destination == root_origin_code:
                                     closed_routes.append(mr + [flight])
                                 else:
                                     getter(r, mr)[flight] = {}
 
-        if len(getter(r, mr))==0:
+        if len(getter(r, mr)) == 0:
             setter(r, mr)
 
         mr = min_route(r)
@@ -247,31 +296,35 @@ def routes_finder(
     max_routes=None,
     sleep=None,
     no_tqdm=False,
-    session=requests
+    session=requests,
 ):
     start_time = datetime.datetime.now()
     r = dict()
-    for f in get_fare(
+    for flight in get_fare(
         origin=root_origin_code,
         start=start_not_before,
         end=start_until,
         session=session,
         sleep=sleep,
     ):
-        if len(country_whitelist)==0 or airports[f.destination]["country"]["code"] in country_whitelist:
-            r[f] = {}
+        if (
+            len(country_whitelist) == 0 or airports[flight.destination]["country"]["code"] in country_whitelist
+        ) and flight.destination not in blacklist:
+            r[flight] = {}
 
     closed_routes = dict()
     mr = min_route(r)
 
-    while mr is not None and \
-    (max_routes is None or len(closed_routes) < max_routes) and \
-    (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5:
+    while (
+        mr is not None
+        and (max_routes is None or len(closed_routes) < max_routes)
+        and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5
+    ):
         for days in range(min_stay_days, max_away_days - (mr[-1].end - mr[0].start).days):
             for flight in get_fare_origins(
-                origins = cityairports[city(mr[-1].destination)],
-                start = mr[-1].end.date() + datetime.timedelta(days + 1),
-                end = mr[-1].end.date() + datetime.timedelta(days + 1),
+                origins=cityairports[city(mr[-1].destination)],
+                start=mr[-1].end.date() + datetime.timedelta(days + 1),
+                end=mr[-1].end.date() + datetime.timedelta(days + 1),
                 session=session,
                 sleep=sleep,
             ):
@@ -280,12 +333,18 @@ def routes_finder(
                     new_route = mr + [flight]
                     if old_route is None or sum(f.euro for f in new_route) < sum(f.euro for f in old_route):
                         closed_routes[tuple(sorted(city(f.destination) for f in mr))] = mr + [flight]
-                elif (len(country_whitelist)==0 or airports[flight.destination]["country"]["code"] in country_whitelist) and \
-                (not unique_country or airports[flight.destination]["country"]["code"] not in {airports[flight.destination]["country"]["code"] for f in mr}) and \
-                city(flight.destination) not in {city(f.destination) for f in mr} and \
-                flight.destination not in blacklist:
+                elif (
+                    (len(country_whitelist) == 0 or airports[flight.destination]["country"]["code"] in country_whitelist)
+                    and (
+                        not unique_country
+                        or airports[flight.destination]["country"]["code"]
+                        not in {airports[flight.destination]["country"]["code"] for f in mr}
+                    )
+                    and city(flight.destination) not in {city(f.destination) for f in mr}
+                    and flight.destination not in blacklist
+                ):
                     getter(r, mr)[flight] = {}
-        if len(getter(r, mr))==0:
+        if len(getter(r, mr)) == 0:
             setter(r, mr)
         mr = min_route(r)
 
@@ -323,7 +382,7 @@ if __name__ == "__main__":
     s = requests.Session()
     a = get_airports(session=s)
 
-    countries = {aa["country"]["code"]:aa["country"]["name"] for aa in a.values()}
+    countries = {aa["country"]["code"]: aa["country"]["name"] for aa in a.values()}
     whitelist = set(args.whitelist)
     country_blacklist = set(args.country_blacklist)
     blacklist = set(args.blacklist)
@@ -359,23 +418,23 @@ if __name__ == "__main__":
     print(f"found {len(closed_routes)} closed routes, made of {len({f for r in closed_routes for f in r})} flights")
     print(Counter([a[f.destination]["name"] for r in closed_routes for f in r[:-1]]))
     print(Counter([f for r in [{a[f.destination]["country"]["name"] for f in r[:-1]} for r in closed_routes] for f in r]))
-    print(Counter([len(r)-1 for r in closed_routes]))
+    print(Counter([len(r) - 1 for r in closed_routes]))
 
     for route in sorted(
         closed_routes,
-        key=lambda r:sum(f.euro for f in r)/(len(r)-1),
+        key=lambda r: sum(f.euro for f in r) / (len(r) - 1),
     ):
         print(
-            round(sum(f.euro for f in route)/(len(route)-1), 2),
-            len(route)-1,
+            round(sum(f.euro for f in route) / (len(route) - 1), 2),
+            len(route) - 1,
             round(sum(f.euro for f in route), 2),
-            route[0].start.strftime('%Y-%m-%d/%H:%M'),
+            route[0].start.strftime("%Y-%m-%d/%H:%M"),
             day_name[route[0].start.weekday()],
             day_name[route[-1].end.weekday()],
             (route[-1].end - route[0].start).days,
             (route[-1].end - route[0].start).seconds // 3600,
             (route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600),
             route,
-            [(city(f1.destination), str(f2.start-f1.end)) for f1,f2 in zip(route, route[1:])],
+            [(city(f1.destination), str(f2.start - f1.end)) for f1, f2 in zip(route, route[1:])],
             [(f.amount, f.url) for f in route],
         )

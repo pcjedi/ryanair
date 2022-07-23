@@ -1,0 +1,28 @@
+{
+    "image": "mcr.microsoft.com/vscode/devcontainers/python",
+    "remoteUser": "vscode",
+    "postCreateCommand": "pip install -r requirements.txt",
+    "settings": { 
+		"update.showReleaseNotes": false,
+		"workbench.welcomePage.walkthroughs.openOnInstall": false,
+		"python.linting.enabled": true,
+		"python.linting.flake8Enabled": true,
+		"python.linting.flake8Args": ["--max-line-length=127", "--verbose"],
+		"python.formatting.provider": "black",
+		"python.formatting.blackPath": "/usr/local/py-utils/bin/black",
+	 	"python.formatting.blackArgs": ["--line-length", "127"],
+		"[python]": {"editor.formatOnSave": true},
+		"git.autofetch": true,
+		"git.confirmSync": false,
+		"git.enableSmartCommit": true
+    },
+	"extensions": [
+		"ms-python.python",
+		"ms-python.vscode-pylance",
+		"GitHub.copilot",
+		"ms-toolsai.jupyter",
+		"ms-toolsai.jupyter-renderers",
+		"ms-toolsai.jupyter-keymap",
+		"eamodio.gitlens"
+	]
+}
