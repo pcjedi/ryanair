@@ -299,15 +299,17 @@ def routes_finder(
 ):
     start_time = datetime.datetime.now()
     r = dict()
-    for f in get_fare(
+    for flight in get_fare(
         origin=root_origin_code,
         start=datetime.date.today(),
         end=datetime.date.today() + datetime.timedelta(start_within_days),
         session=session,
         sleep=sleep,
     ):
-        if len(country_whitelist) == 0 or airports[f.destination]["country"]["code"] in country_whitelist:
-            r[f] = {}
+        if (
+            len(country_whitelist) == 0 or airports[flight.destination]["country"]["code"] in country_whitelist
+        ) and flight.destination not in blacklist:
+            r[flight] = {}
 
     closed_routes = dict()
     mr = min_route(r)
