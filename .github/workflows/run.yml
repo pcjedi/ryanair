@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       root_origin_code:
-      start_within_days:
+      start_not_before:
+      start_until:
       max_away_days:
       min_stay_days:
       country_whitelist:
@@ -27,7 +28,8 @@ jobs:
     - run: > 
         python ryanair.py
         --root_origin_code ${{ github.event.inputs.root_origin_code }}
-        --start_within_days ${{ github.event.inputs.start_within_days }}
+        --start_not_before ${{ github.event.inputs.start_not_before }}
+        --start_until ${{ github.event.inputs.start_until }}
         --max_away_days ${{ github.event.inputs.max_away_days }}
         --min_stay_days ${{ github.event.inputs.min_stay_days }}
         --country_whitelist ${{ github.event.inputs.country_whitelist }}

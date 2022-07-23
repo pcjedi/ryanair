@@ -285,7 +285,8 @@ def routes_finder_alt(
 def routes_finder(
     airports,
     root_origin_code,
-    start_within_days,
+    start_not_before,
+    start_until,
     max_away_days,
     min_stay_days,
     cityairports,
@@ -301,8 +302,8 @@ def routes_finder(
     r = dict()
     for flight in get_fare(
         origin=root_origin_code,
-        start=datetime.date.today(),
-        end=datetime.date.today() + datetime.timedelta(start_within_days),
+        start=start_not_before,
+        end=start_until,
         session=session,
         sleep=sleep,
     ):
@@ -350,23 +351,30 @@ def routes_finder(
     return list(closed_routes.values())
 
 
+def flexdate(s:str) -> datetime.date:
+    try:
+        return datetime.datetime.now().date() + datetime.timedelta(days=int(s))
+    except ValueError:
+        return parser.parse(s).date()
+
+
 if __name__ == "__main__":
     import argparse
-
     aparser = argparse.ArgumentParser()
-    aparser.add_argument("--root_origin_code")
-    aparser.add_argument("--start_within_days", type=int)
-    aparser.add_argument("--max_away_days", type=int)
-    aparser.add_argument("--min_stay_days", type=int)
-    aparser.add_argument("--no_tqdm", action="store_true")
-    aparser.add_argument("--early_quit", action="store_true")
-    aparser.add_argument("--unique_country", action="store_true")
-    aparser.add_argument("--country_blacklist", nargs="*", default=[])
-    aparser.add_argument("--blacklist", nargs="*", default=[])
-    aparser.add_argument("--country_whitelist", nargs="*", default=[])
-    aparser.add_argument("--whitelist", nargs="*", default=[])
-    aparser.add_argument("--max_routes", type=int)
-    aparser.add_argument("--sleep", type=float)
+    aparser.add_argument('--root_origin_code')
+    aparser.add_argument('--start_not_before', type=flexdate)
+    aparser.add_argument('--start_until', type=flexdate)
+    aparser.add_argument('--max_away_days', type=int)
+    aparser.add_argument('--min_stay_days', type=int)
+    aparser.add_argument('--no_tqdm', action='store_true')
+    aparser.add_argument('--early_quit', action='store_true')
+    aparser.add_argument('--unique_country', action='store_true')
+    aparser.add_argument('--country_blacklist', nargs='*', default=[])
+    aparser.add_argument('--blacklist', nargs='*', default=[])
+    aparser.add_argument('--country_whitelist', nargs='*', default=[])
+    aparser.add_argument('--whitelist', nargs='*', default=[])
+    aparser.add_argument('--max_routes', type=int)
+    aparser.add_argument('--sleep', type=float)
     args = aparser.parse_args()
 
     start_time = datetime.datetime.now()
@@ -392,7 +400,8 @@ if __name__ == "__main__":
     closed_routes = routes_finder(
         airports=a,
         root_origin_code=args.root_origin_code,
-        start_within_days=args.start_within_days,
+        start_not_before=args.start_not_before,
+        start_until=args.start_until,
         max_away_days=args.max_away_days,
         min_stay_days=args.min_stay_days,
         cityairports=cityairports,
