@@ -326,7 +326,6 @@ def routes_finder(
         and (max_routes is None or len(closed_routes) < max_routes)
         and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5
     ):
-        print(mr)
         for days in range(min_stay_days, max_away_days - (mr[-1].end - mr[0].start).days):
             for flight in get_fare_origins(
                 origins=cityairports[city(mr[-1].destination)],
@@ -335,13 +334,6 @@ def routes_finder(
                 session=session,
                 sleep=sleep,
             ):
-                print(
-                    any(
-                        start[: min(len(mr), len(start))] == [f.origin for f in mr[: min(len(mr), len(start))]]
-                        for start in allowed_starts
-                    )
-                )
-                print([[f.origin for f in mr[: min(len(mr), len(start))]] for start in allowed_starts])
                 if city(flight.destination) == city(root_origin_code) and (
                     len(allowed_starts) == 0
                     or any(
@@ -420,7 +412,6 @@ if __name__ == "__main__":
     cityairports = defaultdict(set)
     [cityairports[city(code)].add(code) for code in a]
     allowed_starts = [x for list2unpack in [get_connecting_lists("HAM", dest) for dest in args.via] for x in list2unpack]
-    print(allowed_starts)
 
     closed_routes = routes_finder(
         airports=a,
