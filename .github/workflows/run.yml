@@ -11,6 +11,7 @@ on:
       country_whitelist:
       blacklist:
       max_routes:
+      via:
       sleep:
 
 env:
@@ -35,5 +36,6 @@ jobs:
         --country_whitelist ${{ github.event.inputs.country_whitelist }}
         --blacklist ${{ github.event.inputs.blacklist }}
         --max_routes ${{ github.event.inputs.max_routes }}
+        --via ${{ github.event.inputs.via }}
         --sleep ${{ github.event.inputs.sleep }}
         --no_tqdm

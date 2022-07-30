@@ -4,7 +4,6 @@ from collections import defaultdict, Counter
 import json
 from functools import cache
 from dateutil import parser
-from tqdm import tqdm
 import datetime
 import time
 import uuid
@@ -35,7 +34,31 @@ class Flight:
 
     @property
     def url(self):
-        return f"https://www.ryanair.com/de/de/trip/flights/select?adults=1&teens=0&children=0&infants=0&dateOut={self.start.strftime('%Y-%m-%d')}&dateIn=&isConnectedFlight=false&isReturn=false&discount=0&promoCode=&originIata={self.origin}&destinationIata={self.destination}&tpAdults=1&tpTeens=0&tpChildren=0&tpInfants=0&tpStartDate={self.start.strftime('%Y-%m-%d')}&tpEndDate=&tpDiscount=0&tpPromoCode=&tpOriginIata={self.origin}&tpDestinationIata={self.destination}"
+        return (
+            "https://www.ryanair.com/de/de/trip/flights/select?"
+            "adults=1&"
+            "teens=0&"
+            "children=0&"
+            "infants=0&"
+            f"dateOut={self.start.strftime('%Y-%m-%d')}&"
+            "dateIn=&"
+            "isConnectedFlight=false&"
+            "isReturn=false&"
+            "discount=0&"
+            "promoCode=&"
+            f"originIata={self.origin}&"
+            f"destinationIata={self.destination}&"
+            "tpAdults=1&"
+            "tpTeens=0&"
+            "tpChildren=0&"
+            "tpInfants=0&"
+            f"tpStartDate={self.start.strftime('%Y-%m-%d')}&"
+            "tpEndDate=&"
+            "tpDiscount=0&"
+            "tpPromoCode=&"
+            f"tpOriginIata={self.origin}&"
+            f"tpDestinationIata={self.destination}"
+        )
 
     def update(self, session=requests, update=None, amount_update=None):
         if update is None:
@@ -113,7 +136,23 @@ def get_availabilities(origin, destination, session=requests):
     wait=wait_exponential(multiplier=1, min=0, max=70),
 )
 def get_flights(origin, destination, availabilitie, session=requests, update=None, sleep=None, mailto=None):
-    url = f"https://www.ryanair.com/api/booking/v4/availability?ADT=1&CHD=0&DateIn=&DateOut={availabilitie.strftime('%Y-%m-%d')}&Destination={destination}&Disc=0&INF=0&Origin={origin}&TEEN=0&promoCode=&IncludeConnectingFlights=false&FlexDaysBeforeOut=0&FlexDaysOut=0&ToUs=AGREED"
+    url = (
+        "https://www.ryanair.com/api/booking/v4/availability?"
+        "ADT=1&"
+        "CHD=0&"
+        "DateIn=&"
+        f"DateOut={availabilitie.strftime('%Y-%m-%d')}&"
+        f"Destination={destination}&"
+        "Disc=0&"
+        "INF=0&"
+        f"Origin={origin}&"
+        "TEEN=0&"
+        "promoCode=&"
+        "IncludeConnectingFlights=false&"
+        "FlexDaysBeforeOut=0&"
+        "FlexDaysOut=0&"
+        "ToUs=AGREED"
+    )
     if "mailto" in os.environ:
         url += f"&mailto={os.getenv('mailto')}"
     r = set()
@@ -189,7 +228,32 @@ def get_rates(base="EUR", session=requests):
     return g.json()["rates"]
 
 
-def min_route(r) -> List[Flight]:
+def get_connections(origin, destination, max_depth=1, path=[]):
+    destinations = get_destinations(origin) - set(path)
+    if destination in destinations:
+        return [path + [origin] + [destination]]
+    elif max_depth > 0:
+        r_list = []
+        for dest in destinations:
+            result_list = get_connections(dest, destination, max_depth - 1, path + [origin])
+            for result in result_list:
+                if result[-1] == destination:
+                    r_list.append(result)
+        return r_list
+    else:
+        return []
+
+
+def get_connecting_lists(origin, destination):
+    connections = []
+    max_depth = 0
+    while len(connections) == 0:
+        connections += get_connections(origin, destination, max_depth)
+        max_depth += 1
+    return connections
+
+
+def min_route(r, allowed_starts: list = []) -> List[Flight]:
     if r is None:
         return
     if len(r) == 0:
@@ -203,83 +267,24 @@ def min_route(r) -> List[Flight]:
             routes.append([k] + v2)
     if len(routes) == 0:
         return
-    return sorted(routes, key=lambda route: sum(f.euro for f in route) / len(route))[0]
+    if len(allowed_starts) > 0:
+        routes = filter(
+            lambda x: any(all(l1 == l2.origin for l1, l2 in zip(conn_list, x)) for conn_list in allowed_starts), routes
+        )
+    return min(routes, key=lambda route: sum(f.euro for f in route) / len(route))
 
 
-def getter(r, l):
-    if len(l) == 1:
-        return r[l[0]]
-    return getter(r[l[0]], l[1:])
+def getter(r, key_list: list):
+    if len(key_list) == 1:
+        return r[key_list[0]]
+    return getter(r[key_list[0]], key_list[1:])
 
 
-def setter(r, l, value=None):
-    if len(l) == 1:
-        r[l[0]] = value
+def setter(r, key_list: list, value=None):
+    if len(key_list) == 1:
+        r[key_list[0]] = value
     else:
-        setter(r[l[0]], l[1:], value)
-
-
-def routes_finder_alt(
-    root_origin_code,
-    start_within_days,
-    max_away_days,
-    min_stay_hours,
-    max_stay_hours,
-    unique_country=False,
-    blacklist=set(),
-    max_routes=None,
-    sleep=0,
-    no_tqdm=False,
-    session=requests,
-):
-    r = dict()
-    for dest in get_destinations(root_origin_code, session=session):
-        if (
-            (len(whitelist) == 0 or dest in whitelist)
-            and (len(country_whitelist) == 0 or a[dest]["country"]["code"] in country_whitelist)
-            and a[dest]["country"]["code"] not in country_blacklist
-            and dest not in blacklist
-        ):
-            for date in tqdm(get_availabilities(root_origin_code, dest, session=session), desc=dest, disable=no_tqdm):
-                if date < datetime.date.today() + datetime.timedelta(start_within_days):
-                    for flight in get_flights(root_origin_code, dest, date, session=session, sleep=sleep):
-                        if flight not in r:
-                            r[flight] = {}
-
-    mr = min_route(r)
-    closed_routes = []
-    while (
-        mr is not None
-        and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5
-        and (max_routes is not None or len(closed_routes) < max_routes)
-    ):
-        for dest in tqdm(get_destinations(mr[-1].destination, session=session), desc=mr[-1].destination, disable=no_tqdm):
-            if (
-                dest == root_origin_code
-                or dest not in {f.destination for f in mr}
-                and (len(whitelist) == 0 or dest in whitelist)
-                and (len(country_whitelist) == 0 or a[dest]["country"]["code"] in country_whitelist)
-                and dest not in blacklist
-                and a[dest]["country"]["code"] not in country_blacklist
-                and (not unique_country or a[dest]["country"]["code"] not in {a[f.destination]["country"]["code"] for f in mr})
-            ):
-                for date in get_availabilities(mr[-1].destination, dest, session=session):
-                    if (
-                        0 <= (date - mr[-1].end.date()).days <= 1 + max_stay_hours / 24
-                        and (date - mr[0].start.date()).days < max_away_days
-                    ):
-                        for flight in get_flights(mr[-1].destination, dest, date, session=session, sleep=sleep):
-                            if 3600 * min_stay_hours < (flight.start - mr[-1].end).total_seconds() < 3600 * max_stay_hours:
-                                if flight.destination == root_origin_code:
-                                    closed_routes.append(mr + [flight])
-                                else:
-                                    getter(r, mr)[flight] = {}
-
-        if len(getter(r, mr)) == 0:
-            setter(r, mr)
-
-        mr = min_route(r)
-    return closed_routes
+        setter(r[key_list[0]], key_list[1:], value)
 
 
 def routes_finder(
@@ -294,8 +299,8 @@ def routes_finder(
     country_whitelist=None,
     blacklist=set(),
     max_routes=None,
+    allowed_starts=[],
     sleep=None,
-    no_tqdm=False,
     session=requests,
 ):
     start_time = datetime.datetime.now()
@@ -313,7 +318,7 @@ def routes_finder(
             r[flight] = {}
 
     closed_routes = dict()
-    mr = min_route(r)
+    mr = min_route(r, allowed_starts=allowed_starts)
 
     while (
         mr is not None
@@ -346,12 +351,12 @@ def routes_finder(
                     getter(r, mr)[flight] = {}
         if len(getter(r, mr)) == 0:
             setter(r, mr)
-        mr = min_route(r)
+        mr = min_route(r, allowed_starts=allowed_starts)
 
     return list(closed_routes.values())
 
 
-def flexdate(s:str) -> datetime.date:
+def flexdate(s: str) -> datetime.date:
     try:
         return datetime.datetime.now().date() + datetime.timedelta(days=int(s))
     except ValueError:
@@ -360,21 +365,22 @@ def flexdate(s:str) -> datetime.date:
 
 if __name__ == "__main__":
     import argparse
+
     aparser = argparse.ArgumentParser()
-    aparser.add_argument('--root_origin_code')
-    aparser.add_argument('--start_not_before', type=flexdate)
-    aparser.add_argument('--start_until', type=flexdate)
-    aparser.add_argument('--max_away_days', type=int)
-    aparser.add_argument('--min_stay_days', type=int)
-    aparser.add_argument('--no_tqdm', action='store_true')
-    aparser.add_argument('--early_quit', action='store_true')
-    aparser.add_argument('--unique_country', action='store_true')
-    aparser.add_argument('--country_blacklist', nargs='*', default=[])
-    aparser.add_argument('--blacklist', nargs='*', default=[])
-    aparser.add_argument('--country_whitelist', nargs='*', default=[])
-    aparser.add_argument('--whitelist', nargs='*', default=[])
-    aparser.add_argument('--max_routes', type=int)
-    aparser.add_argument('--sleep', type=float)
+    aparser.add_argument("--root_origin_code")
+    aparser.add_argument("--start_not_before", type=flexdate)
+    aparser.add_argument("--start_until", type=flexdate)
+    aparser.add_argument("--max_away_days", type=int)
+    aparser.add_argument("--min_stay_days", type=int)
+    aparser.add_argument("--early_quit", action="store_true")
+    aparser.add_argument("--unique_country", action="store_true")
+    aparser.add_argument("--country_blacklist", nargs="*", default=[])
+    aparser.add_argument("--blacklist", nargs="*", default=[])
+    aparser.add_argument("--country_whitelist", nargs="*", default=[])
+    aparser.add_argument("--whitelist", nargs="*", default=[])
+    aparser.add_argument("--via", nargs="*", default=[])
+    aparser.add_argument("--max_routes", type=int)
+    aparser.add_argument("--sleep", type=float)
     args = aparser.parse_args()
 
     start_time = datetime.datetime.now()
@@ -393,9 +399,12 @@ if __name__ == "__main__":
     assert country_whitelist - set(countries.keys()) == set(), f"country white list items must all be in {countries}"
     assert blacklist - set(a.keys()) == set(), f"blacklisted must be in {a.keys()}"
 
-    city = lambda airport: a[airport].get("macCity", a[airport]["city"])["code"].capitalize()
+    def city(airport):
+        return a[airport].get("macCity", a[airport]["city"])["code"].capitalize()
+
     cityairports = defaultdict(set)
     [cityairports[city(code)].add(code) for code in a]
+    allowed_starts = [x for list2unpack in [get_connecting_lists("HAM", dest) for dest in args.via] for x in list2unpack]
 
     closed_routes = routes_finder(
         airports=a,
@@ -409,8 +418,8 @@ if __name__ == "__main__":
         country_whitelist=country_whitelist,
         blacklist=blacklist,
         max_routes=args.max_routes,
+        allowed_starts=allowed_starts,
         sleep=args.sleep,
-        no_tqdm=True,
         session=s,
     )
 
