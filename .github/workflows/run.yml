@@ -38,4 +38,3 @@ jobs:
         --max_routes ${{ github.event.inputs.max_routes }}
         --via ${{ github.event.inputs.via }}
         --sleep ${{ github.event.inputs.sleep }}
-        --no_tqdm
