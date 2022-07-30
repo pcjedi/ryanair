@@ -315,12 +315,17 @@ def routes_finder(
         sleep=sleep,
     ):
         if (
-            len(country_whitelist) == 0 or airports[flight.destination]["country"]["code"] in country_whitelist
-        ) and flight.destination not in blacklist:
+            (len(country_whitelist) == 0 or airports[flight.destination]["country"]["code"] in country_whitelist)
+            and flight.destination not in blacklist
+            and (
+                len(allowed_starts) == 0
+                or any(all(s == f.origin for s, f in zip(start, mr + [flight])) for start in allowed_starts)
+            )
+        ):
             r[flight] = {}
 
     closed_routes = dict()
-    mr = min_route(r, allowed_starts=allowed_starts)
+    mr = min_route(r)
 
     while (
         mr is not None
@@ -337,6 +342,7 @@ def routes_finder(
             ):
                 print(mr + [flight])
                 print(list(start == [f.origin for f in (mr + [flight])[: len(start)]] for start in allowed_starts))
+                print(list(list(s == f.origin for s, f in zip(start, mr + [flight])) for start in allowed_starts))
                 if city(flight.destination) == city(root_origin_code) and (
                     len(allowed_starts) == 0
                     or any(start == [f.origin for f in (mr + [flight])[: len(start)]] for start in allowed_starts)
@@ -354,11 +360,15 @@ def routes_finder(
                     )
                     and city(flight.destination) not in {city(f.destination) for f in mr}
                     and flight.destination not in blacklist
+                    and (
+                        len(allowed_starts) == 0
+                        or any(all(s == f.origin for s, f in zip(start, mr + [flight])) for start in allowed_starts)
+                    )
                 ):
                     getter(r, mr)[flight] = {}
         if len(getter(r, mr)) == 0:
             setter(r, mr)
-        mr = min_route(r, allowed_starts=allowed_starts)
+        mr = min_route(r)
 
     return list(closed_routes.values())
 
