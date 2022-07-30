@@ -253,7 +253,7 @@ def get_connecting_lists(origin, destination):
     return connections
 
 
-def min_route(r, allowed_starts: list = []) -> List[Flight]:
+def min_route(r) -> List[Flight]:
     if r is None:
         return
     if len(r) == 0:
@@ -265,13 +265,10 @@ def min_route(r, allowed_starts: list = []) -> List[Flight]:
             r[k] = None
         else:
             routes.append([k] + v2)
-    if len(allowed_starts) > 0:
-        routes = filter(
-            lambda x: any(all(l1 == l2.destination for l1, l2 in zip(conn_list[1:], x)) for conn_list in allowed_starts),
-            routes,
-        )
     try:
-        return min(routes, key=lambda route: sum(f.euro for f in route) / len(route))
+        return min(
+            routes, key=lambda route: sum(f.euro for f in route) / (len(route) - 1) if len(route) > 1 else route[0].euro
+        )
     except ValueError:
         return
 
@@ -340,9 +337,6 @@ def routes_finder(
                 session=session,
                 sleep=sleep,
             ):
-                print(mr + [flight])
-                print(list(start == [f.origin for f in (mr + [flight])[: len(start)]] for start in allowed_starts))
-                print(list(list(s == f.destination for s, f in zip(start[1:], mr + [flight])) for start in allowed_starts))
                 if city(flight.destination) == city(root_origin_code) and (
                     len(allowed_starts) == 0
                     or any(start == [f.origin for f in (mr + [flight])[: len(start)]] for start in allowed_starts)
@@ -424,7 +418,6 @@ if __name__ == "__main__":
     allowed_starts = [
         x for list2unpack in [get_connecting_lists(args.root_origin_code, dest) for dest in args.via] for x in list2unpack
     ]
-    print(allowed_starts)
 
     closed_routes = routes_finder(
         airports=a,
