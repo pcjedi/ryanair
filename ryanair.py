@@ -319,7 +319,7 @@ def routes_finder(
             and flight.destination not in blacklist
             and (
                 len(allowed_starts) == 0
-                or any(all(s == f.origin for s, f in zip(start, mr + [flight])) for start in allowed_starts)
+                or any(all(s == f.destination for s, f in zip(start[1:], [flight])) for start in allowed_starts)
             )
         ):
             r[flight] = {}
@@ -342,7 +342,7 @@ def routes_finder(
             ):
                 print(mr + [flight])
                 print(list(start == [f.origin for f in (mr + [flight])[: len(start)]] for start in allowed_starts))
-                print(list(list(s == f.origin for s, f in zip(start, mr + [flight])) for start in allowed_starts))
+                print(list(list(s == f.destination for s, f in zip(start[1:], mr + [flight])) for start in allowed_starts))
                 if city(flight.destination) == city(root_origin_code) and (
                     len(allowed_starts) == 0
                     or any(start == [f.origin for f in (mr + [flight])[: len(start)]] for start in allowed_starts)
@@ -362,7 +362,7 @@ def routes_finder(
                     and flight.destination not in blacklist
                     and (
                         len(allowed_starts) == 0
-                        or any(all(s == f.origin for s, f in zip(start, mr + [flight])) for start in allowed_starts)
+                        or any(all(s == f.destination for s, f in zip(start[1:], mr + [flight])) for start in allowed_starts)
                     )
                 ):
                     getter(r, mr)[flight] = {}
