@@ -265,8 +265,6 @@ def min_route(r, allowed_starts: list = []) -> List[Flight]:
             r[k] = None
         else:
             routes.append([k] + v2)
-    if len(routes) == 0:
-        return
     if len(allowed_starts) > 0:
         routes = filter(
             lambda x: any(all(l1 == l2.origin for l1, l2 in zip(conn_list, x)) for conn_list in allowed_starts), routes
