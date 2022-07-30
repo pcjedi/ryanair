@@ -334,7 +334,9 @@ def routes_finder(
                 session=session,
                 sleep=sleep,
             ):
-                if city(flight.destination) == city(root_origin_code):
+                if city(flight.destination) == city(root_origin_code) and (
+                    len(allowed_starts) == 0 or any(start == [f.origin for f in mr[: len(start)]] for start in allowed_starts)
+                ):
                     old_route = closed_routes.get(tuple(sorted(city(f.destination) for f in mr)), None)
                     new_route = mr + [flight]
                     if old_route is None or sum(f.euro for f in new_route) < sum(f.euro for f in old_route):
