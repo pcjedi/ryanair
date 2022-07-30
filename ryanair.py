@@ -334,6 +334,8 @@ def routes_finder(
                 session=session,
                 sleep=sleep,
             ):
+                print(mr + [flight])
+                print(list(start == (mr + [flight])[: len(start)] for start in allowed_starts))
                 if city(flight.destination) == city(root_origin_code) and (
                     len(allowed_starts) == 0 or any(start == (mr + [flight])[: len(start)] for start in allowed_starts)
                 ):
@@ -407,7 +409,10 @@ if __name__ == "__main__":
 
     cityairports = defaultdict(set)
     [cityairports[city(code)].add(code) for code in a]
-    allowed_starts = [x for list2unpack in [get_connecting_lists("HAM", dest) for dest in args.via] for x in list2unpack]
+    allowed_starts = [
+        x for list2unpack in [get_connecting_lists(args.root_origin_code, dest) for dest in args.via] for x in list2unpack
+    ]
+    print(allowed_starts)
 
     closed_routes = routes_finder(
         airports=a,
