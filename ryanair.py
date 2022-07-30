@@ -335,10 +335,11 @@ def routes_finder(
                 session=session,
                 sleep=sleep,
             ):
-                print(any(start == [f.origin for f in mr[: len(start)]] for start in allowed_starts))
-                print([[f.origin for f in mr[: len(start)]] for start in allowed_starts])
+                print(any(start == [f.origin for f in mr[: min(len(mr), len(start))]] for start in allowed_starts))
+                print([[f.origin for f in mr[: min(len(mr), len(start))]] for start in allowed_starts])
                 if city(flight.destination) == city(root_origin_code) and (
-                    len(allowed_starts) == 0 or any(start == [f.origin for f in mr[: len(start)]] for start in allowed_starts)
+                    len(allowed_starts) == 0
+                    or any(start == [f.origin for f in mr[: min(len(mr), len(start))]] for start in allowed_starts)
                 ):
                     old_route = closed_routes.get(tuple(sorted(city(f.destination) for f in mr)), None)
                     new_route = mr + [flight]
