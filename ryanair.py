@@ -267,7 +267,7 @@ def min_route(r, allowed_starts: list = []) -> List[Flight]:
             routes.append([k] + v2)
     if len(allowed_starts) > 0:
         routes = filter(
-            lambda x: any(all(l1 == l2.origin for l1, l2 in zip(conn_list, x)) for conn_list in allowed_starts), routes
+            lambda x: any(all(l1 == l2.origin for l1, l2 in zip(conn_list[1:], x)) for conn_list in allowed_starts), routes
         )
     try:
         return min(routes, key=lambda route: sum(f.euro for f in route) / len(route))
