@@ -228,14 +228,14 @@ def get_rates(base="EUR", session=requests):
     return g.json()["rates"]
 
 
-def get_connections(origin, destination, max_depth=1, path=[]):
-    destinations = get_destinations(origin) - set(path)
+def get_connections(origin, destination, max_depth=1, path=[], blacklist=set()):
+    destinations = get_destinations(origin) - set(path) - blacklist
     if destination in destinations:
         return [path + [origin] + [destination]]
     elif max_depth > 0:
         r_list = []
         for dest in destinations:
-            result_list = get_connections(dest, destination, max_depth - 1, path + [origin])
+            result_list = get_connections(dest, destination, max_depth - 1, path + [origin], blacklist=blacklist)
             for result in result_list:
                 if result[-1] == destination:
                     r_list.append(result)
@@ -244,11 +244,11 @@ def get_connections(origin, destination, max_depth=1, path=[]):
         return []
 
 
-def get_connecting_lists(origin, destination):
+def get_connecting_lists(origin, destination, blacklist=set()):
     connections = []
     max_depth = 0
     while len(connections) == 0:
-        connections += get_connections(origin, destination, max_depth)
+        connections += get_connections(origin, destination, max_depth, blacklist=blacklist)
         max_depth += 1
     return connections
 
@@ -266,9 +266,9 @@ def min_route(r) -> List[Flight]:
         else:
             routes.append([k] + v2)
     try:
-        return min(
-            routes, key=lambda route: sum(f.euro for f in route) / (len(route) - 1) if len(route) > 1 else route[0].euro
-        )
+        return min(routes, key=lambda route: sum(f.euro for f in route) / (len(route) - 1))
+    except ZeroDivisionError:
+        return min(routes, key=lambda route: route[0].euro)
     except ValueError:
         return
 
@@ -416,7 +416,9 @@ if __name__ == "__main__":
     cityairports = defaultdict(set)
     [cityairports[city(code)].add(code) for code in a]
     allowed_starts = [
-        x for list2unpack in [get_connecting_lists(args.root_origin_code, dest) for dest in args.via] for x in list2unpack
+        x
+        for list2unpack in [get_connecting_lists(args.root_origin_code, dest, blacklist) for dest in args.via]
+        for x in list2unpack
     ]
 
     closed_routes = routes_finder(
