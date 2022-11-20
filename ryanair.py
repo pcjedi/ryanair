@@ -10,6 +10,7 @@ import uuid
 from tenacity import retry, retry_if_exception_type, wait_exponential, stop_after_attempt
 from typing import List, Set
 from calendar import day_name
+from itertools import permutations, product
 
 
 class Flight:
@@ -253,6 +254,20 @@ def get_connecting_lists(origin, destination, blacklist=set()):
     return connections
 
 
+def get_starts(origin, destinations, blacklist=set()):
+    starts = []
+    for dests in permutations(destinations, len(destinations)):
+        starts_temp = get_connecting_lists(origin, list(dests)[0], blacklist=blacklist)
+        for o, d in zip(list(dests)[:-1], list(dests)[1:]):
+            starts_temp = [
+                l1 + l2[1:]
+                for l1, l2 in product(starts_temp, get_connecting_lists(o, d, blacklist=blacklist))
+                if len(l1 + l2[1:]) == len(set(l1) | set(l2[1:]))
+            ]
+        starts += starts_temp
+    return starts
+
+
 def min_route(r) -> List[Flight]:
     if r is None:
         return
@@ -415,11 +430,7 @@ if __name__ == "__main__":
 
     cityairports = defaultdict(set)
     [cityairports[city(code)].add(code) for code in a]
-    allowed_starts = [
-        x
-        for list2unpack in [get_connecting_lists(args.root_origin_code, dest, blacklist) for dest in args.via]
-        for x in list2unpack
-    ]
+    allowed_starts = get_starts(origin=args.root_origin_code, destinations=args.via, blacklist=blacklist)
 
     closed_routes = routes_finder(
         airports=a,
