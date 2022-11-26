@@ -256,6 +256,8 @@ def get_connecting_lists(origin, destination, blacklist=set()):
 
 def get_starts(origin, destinations, blacklist=set()):
     starts = []
+    if len(destinations) == 0:
+        return starts
     for dests in permutations(destinations, len(destinations)):
         starts_temp = get_connecting_lists(origin, list(dests)[0], blacklist=blacklist)
         for o, d in zip(list(dests)[:-1], list(dests)[1:]):
