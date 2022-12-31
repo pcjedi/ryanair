@@ -434,6 +434,10 @@ if __name__ == "__main__":
     [cityairports[city(code)].add(code) for code in a]
     allowed_starts = get_starts(origin=args.root_origin_code, destinations=args.via, blacklist=blacklist)
 
+    if len(allowed_starts) > 0:
+        print("allowed starts:")
+        print(allowed_starts)
+
     closed_routes = routes_finder(
         airports=a,
         root_origin_code=args.root_origin_code,
