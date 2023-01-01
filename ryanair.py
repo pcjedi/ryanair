@@ -436,7 +436,8 @@ if __name__ == "__main__":
 
     if len(allowed_starts) > 0:
         print("allowed starts:")
-        print(allowed_starts)
+        for allowed_start in allowed_starts:
+            print(allowed_start)
 
     closed_routes = routes_finder(
         airports=a,
