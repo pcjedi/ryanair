@@ -87,7 +87,7 @@ class Flight:
     wait=wait_exponential(multiplier=1, min=0, max=70),
 )
 def get_airports(session=requests):
-    url = "https://www.ryanair.com/api/locate/v1/autocomplete/airports"
+    url = "https://www.ryanair.com/api/views/locate/5/airports/de/active"
     airports = {airport["code"]: airport for airport in json.load(open("airports.json", "r"))}
     airports |= {airport["code"]: airport for airport in session.get(url).json()}
     return airports
@@ -105,7 +105,7 @@ def get_airports(session=requests):
 )
 def get_destinations(origin, session=requests):
     g = session.get(
-        f"https://www.ryanair.com/api/locate/v1/autocomplete/routes?arrivalPhrase=&departurePhrase={origin}&market=de-de"
+        f"https://www.ryanair.com/api/views/locate/searchWidget/routes/de/airport/{origin}"
     )
     r2 = g.json()
     return {arrivalAirport["arrivalAirport"]["code"] for arrivalAirport in r2 if arrivalAirport["connectingAirport"] is None}
