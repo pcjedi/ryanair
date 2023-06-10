@@ -108,7 +108,7 @@ def get_destinations(origin, session=requests):
         f"https://www.ryanair.com/api/views/locate/searchWidget/routes/de/airport/{origin}"
     )
     r2 = g.json()
-    return {arrivalAirport["arrivalAirport"]["code"] for arrivalAirport in r2 if arrivalAirport["connectingAirport"] is None}
+    return {arrivalAirport["arrivalAirport"]["code"] for arrivalAirport in r2 if arrivalAirport.get("connectingAirport", None) is None}
 
 
 @cache
