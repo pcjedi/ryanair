@@ -343,6 +343,7 @@ def routes_finder(
 
     while (
         mr is not None
+        and len(mr) > 0
         and (max_routes is None or len(closed_routes) < max_routes)
         and (datetime.datetime.now() - start_time).total_seconds() < 3600 * 5
     ):
