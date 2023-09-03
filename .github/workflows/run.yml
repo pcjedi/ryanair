@@ -4,15 +4,22 @@ on:
   workflow_dispatch:
     inputs:
       root_origin_code:
+        required: true
       start_not_before:
+        required: true
       start_until:
+        required: true
       max_away_days:
+        required: true
       min_stay_days:
+        required: true
       country_whitelist:
       blacklist:
       max_routes:
+        required: true
       via:
       sleep:
+        required: true
 
 env:
   mailto: ${{ secrets.MAILTO }}
