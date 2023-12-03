@@ -225,7 +225,7 @@ def get_fare(origin, start, end, session=requests, sleep=None) -> Set[Flight]:
     wait=wait_exponential(multiplier=1, min=0, max=70),
 )
 def get_rates(base="EUR", session=requests):
-    g = session.get(f"https://api.exchangerate.host/latest?base={base}")
+    g = session.get(f"https://open.er-api.com/v6/latest/{base}")
     return g.json()["rates"]
 
 
