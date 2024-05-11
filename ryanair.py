@@ -495,7 +495,7 @@ if __name__ == "__main__":
 
     print(get_fare.cache_info())
     print(f"found {len(closed_routes)} closed routes, made of {len({f for r in closed_routes for f in r})} flights")
-    print(Counter([a[f.destination]["name"] for r in closed_routes for f in r[:-1]]))
+    print(Counter([city(f.destination) for r in closed_routes for f in r[:-1]]))
     print(Counter([f for r in [{a[f.destination]["country"]["name"] for f in r[:-1]} for r in closed_routes] for f in r]))
     print(Counter([len(r) - 1 for r in closed_routes]))
 
@@ -504,7 +504,7 @@ if __name__ == "__main__":
         key=lambda cities: sum(f.euro for f in closed_routes_dict[cities]) / (len(closed_routes_dict[cities]) - 1),
     ):
         route = closed_routes_dict[cities]
-        print(f"::group::{' '.join(unique_cites[cities])}")
+        print(f"::group::" + " ".join(unique_cites[cities]))
         print(round(sum(f.euro for f in route) / (len(route) - 1), 2))
         print(len(route) - 1)
         print(len(route) - 1)
