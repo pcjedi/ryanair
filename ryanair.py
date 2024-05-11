@@ -469,9 +469,10 @@ if __name__ == "__main__":
     allowed_starts = get_starts(origin=args.root_origin_code, destinations=args.via, blacklist=blacklist)
 
     if len(allowed_starts) > 0:
-        print("allowed starts:")
+        print("::group::allowed starts")
         for allowed_start in allowed_starts:
             print(allowed_start)
+        print("::endgroup::")
 
     closed_routes_dict = routes_finder(
         airports=a,
@@ -493,11 +494,13 @@ if __name__ == "__main__":
     closed_routes = list(closed_routes_dict.values())
     unique_cites = uniquify(set(closed_routes_dict.keys()))
 
+    print("::group::Summary")
     print(get_fare.cache_info())
     print(f"found {len(closed_routes)} closed routes, made of {len({f for r in closed_routes for f in r})} flights")
     print(Counter([city(f.destination) for r in closed_routes for f in r[:-1]]))
     print(Counter([f for r in [{a[f.destination]["country"]["name"] for f in r[:-1]} for r in closed_routes] for f in r]))
     print(Counter([len(r) - 1 for r in closed_routes]))
+    print("::endgroup::")
 
     for cities in sorted(
         closed_routes_dict,
@@ -511,9 +514,8 @@ if __name__ == "__main__":
         print("Start:", route[0].start.strftime("%Y-%m-%d/%H:%M"))
         print("Start day", day_name[route[0].start.weekday()])
         print("End Day:", day_name[route[-1].end.weekday()])
-        print("Number of Days Hours Minutes:", (route[-1].end - route[0].start).days, (route[-1].end - route[0].start).seconds // 3600, (route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600))
+        print((route[-1].end - route[0].start).days, "Days", (route[-1].end - route[0].start).seconds // 3600, ":", (route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600))
         print("Details:", route)
-        print([(city(f1.destination), str(f2.start - f1.end)) for f1, f2 in zip(route, route[1:])])
         for f1, f2 in zip(route, route[1:]):
             print(city(f1.destination), str(f2.start - f1.end), f1.amount, f1.url)
         f1 = route[-1]
