@@ -411,16 +411,16 @@ def uniquify(elements: set[tuple[object]]):
                 elements -= {tuple(c)}
                 continue
             uniqus = set()
-            setc = set(c)
-            for element in elements:
-                if set(element) & setc == setc:
+            for element in elements | min_unique.keys():
+                if set(c) - set(element) == set():
                     uniqus.add(element)
                     if len(uniqus) > 1:
                         break
             if len(uniqus) == 1:
                 unique = uniqus.pop()
-                min_unique[unique] = tuple(c)
-                elements -= {unique}
+                if unique not in min_unique:
+                    min_unique[unique] = c
+                    elements -= {unique}
                 continue
     return min_unique
 
@@ -504,7 +504,7 @@ if __name__ == "__main__":
         key=lambda cities: sum(f.euro for f in closed_routes_dict[cities]) / (len(closed_routes_dict[cities]) - 1),
     ):
         route = closed_routes_dict[cities]
-        print(f"::group::{unique_cites[cities]}")
+        print(f"::group::{' '.join(unique_cites[cities])}")
         print(round(sum(f.euro for f in route) / (len(route) - 1), 2))
         print(len(route) - 1)
         print(len(route) - 1)
