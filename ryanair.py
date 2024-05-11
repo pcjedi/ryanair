@@ -1,16 +1,18 @@
-import requests
-import os
-from collections import defaultdict, Counter
-import json
-from functools import cache
-from dateutil import parser
 import datetime
+import json
+import os
 import time
 import uuid
-from tenacity import retry, retry_if_exception_type, wait_exponential, stop_after_attempt
-from typing import List, Set
 from calendar import day_name
-from itertools import permutations, product
+from collections import Counter, defaultdict
+from functools import cache
+from itertools import combinations, permutations, product
+from typing import List, Set
+
+import requests
+from dateutil import parser
+from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
+                      wait_exponential)
 
 
 class Flight:
@@ -382,7 +384,7 @@ def routes_finder(
             setter(r, mr)
         mr = min_route(r)
 
-    return list(closed_routes.values())
+    return closed_routes
 
 
 def flexdate(s: str) -> datetime.date:
@@ -390,6 +392,36 @@ def flexdate(s: str) -> datetime.date:
         return datetime.datetime.now().date() + datetime.timedelta(days=int(s))
     except ValueError:
         return parser.parse(s).date()
+
+
+def uniquify(elements: set[tuple[object]]):
+    elements = elements.copy()
+    unique_elements = sorted(set.union(*[set(k) for k in elements.copy()]))
+
+    min_unique = {}
+
+    for r in range(1,len(unique_elements)+1):
+        if len(elements) == 0:
+            break
+        for c in combinations(unique_elements, r=r):
+            if len(elements) == 0:
+                break
+            if tuple(c) in elements:
+                min_unique[tuple(c)] = tuple(c)
+                elements -= {tuple(c)}
+                continue
+            uniqus = set()
+            setc = set(c)
+            for element in elements:
+                if set(element) & setc == setc:
+                    uniqus.add(element)
+                    if len(uniqus) > 1:
+                        break
+            if len(uniqus) == 1:
+                min_unique[c] = uniqus.pop()
+                elements -= {min_unique[c]}
+                continue
+    return min_unique
 
 
 if __name__ == "__main__":
@@ -440,7 +472,7 @@ if __name__ == "__main__":
         for allowed_start in allowed_starts:
             print(allowed_start)
 
-    closed_routes = routes_finder(
+    closed_routes_dict = routes_finder(
         airports=a,
         root_origin_code=args.root_origin_code,
         start_not_before=args.start_not_before,
@@ -457,27 +489,32 @@ if __name__ == "__main__":
         session=s,
     )
 
+    closed_routes = list(closed_routes_dict.values())
+    unique_cites = uniquify(set(closed_routes_dict.keys()))
+
     print(get_fare.cache_info())
     print(f"found {len(closed_routes)} closed routes, made of {len({f for r in closed_routes for f in r})} flights")
     print(Counter([a[f.destination]["name"] for r in closed_routes for f in r[:-1]]))
     print(Counter([f for r in [{a[f.destination]["country"]["name"] for f in r[:-1]} for r in closed_routes] for f in r]))
     print(Counter([len(r) - 1 for r in closed_routes]))
 
-    for route in sorted(
-        closed_routes,
-        key=lambda r: sum(f.euro for f in r) / (len(r) - 1),
+    for cities in sorted(
+        closed_routes_dict,
+        key=lambda cities: sum(f.euro for f in closed_routes_dict[cities]) / (len(closed_routes_dict[cities]) - 1),
     ):
-        print(
-            round(sum(f.euro for f in route) / (len(route) - 1), 2),
-            len(route) - 1,
-            round(sum(f.euro for f in route), 2),
-            route[0].start.strftime("%Y-%m-%d/%H:%M"),
-            day_name[route[0].start.weekday()],
-            day_name[route[-1].end.weekday()],
-            (route[-1].end - route[0].start).days,
-            (route[-1].end - route[0].start).seconds // 3600,
-            (route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600),
-            route,
-            [(city(f1.destination), str(f2.start - f1.end)) for f1, f2 in zip(route, route[1:])],
-            [(f.amount, f.url) for f in route],
-        )
+        route = closed_routes_dict[cities]
+        print(f"::group::{unique_cites[cities]}")
+        print(round(sum(f.euro for f in route) / (len(route) - 1), 2))
+        print(len(route) - 1)
+        print(len(route) - 1)
+        print(round(sum(f.euro for f in route), 2))
+        print(route[0].start.strftime("%Y-%m-%d/%H:%M"))
+        print(day_name[route[0].start.weekday()])
+        print(day_name[route[-1].end.weekday()])
+        print((route[-1].end - route[0].start).days)
+        print((route[-1].end - route[0].start).seconds // 3600)
+        print((route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600))
+        print(route)
+        print([(city(f1.destination), str(f2.start - f1.end)) for f1, f2 in zip(route, route[1:])])
+        print([(f.amount, f.url) for f in route])
+        print("::endgroup::")
