@@ -504,18 +504,18 @@ if __name__ == "__main__":
         key=lambda cities: sum(f.euro for f in closed_routes_dict[cities]) / (len(closed_routes_dict[cities]) - 1),
     ):
         route = closed_routes_dict[cities]
-        print(f"::group::" + " ".join(unique_cites[cities]))
-        print(round(sum(f.euro for f in route) / (len(route) - 1), 2))
-        print(len(route) - 1)
-        print(len(route) - 1)
-        print(round(sum(f.euro for f in route), 2))
-        print(route[0].start.strftime("%Y-%m-%d/%H:%M"))
-        print(day_name[route[0].start.weekday()])
-        print(day_name[route[-1].end.weekday()])
-        print((route[-1].end - route[0].start).days)
-        print((route[-1].end - route[0].start).seconds // 3600)
-        print((route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600))
-        print(route)
+        print(f"::group::" + " ".join([city(f.destination) for f in route if city(f.destination) in unique_cites[cities]]))
+        print("Euro Per City:", round(sum(f.euro for f in route) / (len(route) - 1), 2))
+        print("Cities", len(route) - 1)
+        print("Sum Euro:", round(sum(f.euro for f in route), 2))
+        print("Start:", route[0].start.strftime("%Y-%m-%d/%H:%M"))
+        print("Start day", day_name[route[0].start.weekday()])
+        print("End Day:", day_name[route[-1].end.weekday()])
+        print("Number of Days Hours Minutes:", (route[-1].end - route[0].start).days, (route[-1].end - route[0].start).seconds // 3600, (route[-1].end - route[0].start).seconds // 60 - 60 * ((route[-1].end - route[0].start).seconds // 3600))
+        print("Details:", route)
         print([(city(f1.destination), str(f2.start - f1.end)) for f1, f2 in zip(route, route[1:])])
-        print([(f.amount, f.url) for f in route])
+        for f1, f2 in zip(route, route[1:]):
+            print(city(f1.destination), str(f2.start - f1.end), f1.amount, f1.url)
+        f1 = route[-1]
+        print(city(f1.destination), f1.amount, f1.url)
         print("::endgroup::")
