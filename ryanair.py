@@ -418,8 +418,9 @@ def uniquify(elements: set[tuple[object]]):
                     if len(uniqus) > 1:
                         break
             if len(uniqus) == 1:
-                min_unique[c] = uniqus.pop()
-                elements -= {min_unique[c]}
+                unique = uniqus.pop()
+                min_unique[unique] = tuple(c)
+                elements -= {unique}
                 continue
     return min_unique
 
