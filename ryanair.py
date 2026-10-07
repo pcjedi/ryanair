@@ -396,7 +396,7 @@ def flexdate(s: str) -> datetime.date:
 
 def uniquify(elements: set[tuple[object]]):
     elements = elements.copy()
-    unique_elements = sorted(set.union(*[set(k) for k in elements.copy()]))
+    unique_elements = sorted(set.union(*[set(k) for k in elements])) if elements else []
 
     min_unique = {}
 
